@@ -1,0 +1,134 @@
+'use client';
+import { use, useState, useEffect } from 'react';
+import { notFound, useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { getProductBySlug } from '@/lib/firebase/products';
+import { useCart } from '@/context/CartContext';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+import { Product } from '@/types';
+import { formatPrice } from '@/lib/utils';
+import NeoButton from '@/components/ui/NeoButton';
+import { motion } from 'framer-motion';
+import { Star, Package, ArrowLeft } from 'lucide-react';
+
+export default function ProductDetailClient({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeImage, setActiveImage] = useState(0);
+  const { addToCart } = useCart();
+  const { addItem } = useRecentlyViewed();
+  const router = useRouter();
+
+  useEffect(() => {
+    getProductBySlug(slug).then(p => {
+      if (p) { setProduct(p); addItem(p); }
+      setLoading(false);
+    });
+  }, [slug]);
+
+  if (loading) return (
+    <div className="grid md:grid-cols-2 gap-12 animate-pulse">
+      <div className="bg-gray-200 dark:bg-gray-700 rounded-2xl h-96" />
+      <div className="space-y-4">
+        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4" />
+        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full" />
+        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6" />
+      </div>
+    </div>
+  );
+
+  if (!product) return notFound();
+
+  const images = product.images?.length ? product.images : [product.featuredImage || '/placeholder.png'];
+  const price = product.discountPrice ?? product.price;
+  const hasDiscount = product.discountPrice && product.discountPrice < product.price;
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white mb-6 transition">
+        <ArrowLeft className="w-4 h-4" /> Back
+      </button>
+
+      <div className="grid md:grid-cols-2 gap-12">
+        {/* Images */}
+        <div className="space-y-4">
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl overflow-hidden aspect-square flex items-center justify-center">
+            <Image src={images[activeImage]} alt={product.name} width={500} height={500} className="object-contain w-full h-full" priority />
+          </div>
+          {images.length > 1 && (
+            <div className="flex gap-3">
+              {images.map((img, i) => (
+                <button key={i} onClick={() => setActiveImage(i)}
+                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition ${i === activeImage ? 'border-green-500' : 'border-transparent'}`}>
+                  <Image src={img} alt="" width={64} height={64} className="object-cover w-full h-full" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div>
+          <p className="text-sm text-gray-500 mb-2">{product.category}</p>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">{product.name}</h1>
+
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-3xl font-bold text-green-600 dark:text-green-400">{formatPrice(price)}</span>
+            {hasDiscount && <span className="text-lg text-gray-400 line-through">{formatPrice(product.price)}</span>}
+            {hasDiscount && (
+              <span className="text-sm bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-2 py-0.5 rounded-full font-semibold">
+                {Math.round(((product.price - product.discountPrice!) / product.price) * 100)}% off
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 mb-6">
+            <div className="flex">
+              {Array(5).fill(0).map((_, i) => (
+                <Star key={i} className={`w-4 h-4 ${i < Math.floor(product.rating ?? 4.5) ? 'fill-[#d7ffa4] text-[#d7ffa4]' : 'text-gray-300'}`} />
+              ))}
+            </div>
+            <span className="text-sm text-gray-500">({product.rating ?? '4.5'})</span>
+          </div>
+
+          <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6">{product.description}</p>
+
+          <div className="flex items-center gap-2 mb-8 text-sm">
+            <Package className="w-4 h-4 text-gray-400" />
+            <span className={product.stock > 0 ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
+              {product.stock > 0 ? `In Stock (${product.stock} available)` : 'Out of Stock'}
+            </span>
+          </div>
+
+          {product.tags?.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {product.tags.map(tag => (
+                <span key={tag} className="text-xs px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {product.stock > 0 && (
+            <div className="flex flex-wrap gap-3">
+              <NeoButton
+                text="Add to Cart"
+                onClick={e => {
+                  const img = document.querySelector('img[alt="' + product.name + '"]') as HTMLElement;
+                  addToCart(product, img ?? undefined);
+                }}
+                className="flex-1
+                  bg-[#d7ffa4] text-[#1a1a1a] border-[#1a1a1a] shadow-[3px_3px_0px_#1a1a1a]
+                  dark:bg-[#0f2f30] dark:text-[#e6d3a3] dark:border-[#c9a96e] dark:shadow-[3px_3px_0px_#c9a96e]
+                  hover:dark:-translate-y-0.5 hover:dark:bg-[#143a3b] hover:dark:text-white hover:dark:shadow-[5px_5px_0px_#c9a96e]"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}

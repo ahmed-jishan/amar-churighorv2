@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 50 20% 98%;
+    --foreground: 160 5% 15%;
+  }
+  .dark {
+    --background: 186 68% 6%;
+    --foreground: 95 20% 88%;
+  }
+  body {
+    @apply bg-white dark:bg-[#051a1b] text-gray-900 dark:text-gray-100 transition-colors duration-300;
+  }
+  * {
+    @apply scroll-smooth;
+  }
+}
+
+@layer utilities {
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+  .shine {
+    background: linear-gradient(120deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+    background-size: 200% 100%;
+    animation: shine 1.5s infinite;
+  }
+  @keyframes shine {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+}

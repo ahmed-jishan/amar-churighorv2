@@ -1,0 +1,36 @@
+{
+  "name": "amar-churighor",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "firebase": "^11.0.1",
+    "framer-motion": "^11.15.0",
+    "react-hot-toast": "^2.4.1",
+    "react-hook-form": "^7.54.0",
+    "@hookform/resolvers": "^3.9.1",
+    "zod": "^3.23.8",
+    "lucide-react": "^0.468.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.5"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^3.4.1",
+    "autoprefixer": "^10.0.1",
+    "postcss": "^8",
+    "eslint": "^8",
+    "eslint-config-next": "15.1.0"
+  }
+}
