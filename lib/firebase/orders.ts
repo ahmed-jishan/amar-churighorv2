@@ -42,9 +42,15 @@ export async function updateOrderStatus(id: string, status: OrderStatus, note?: 
   if (!orderSnap.exists()) return;
   const order = orderSnap.data() as Order;
   const now = new Date().toISOString();
+
+  const historyEntry: { status: OrderStatus; timestamp: string; note?: string } = { status, timestamp: now };
+  if (note !== undefined) {
+    historyEntry.note = note;
+  }
+
   await updateDoc(doc(db, COLLECTION, id), {
     status,
-    statusHistory: [...(order.statusHistory || []), { status, timestamp: now, note }],
+    statusHistory: [...(order.statusHistory || []), historyEntry],
     updatedAt: now,
   });
 }

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getProducts, createProduct, updateProduct, deleteProduct, uploadProductImage } from '@/lib/firebase/products';
+import { getProducts, createProduct, updateProduct, deleteProduct } from '@/lib/firebase/products';
+import { uploadImage } from '@/lib/cloudinary';
 import { Product } from '@/types';
 import { formatPrice } from '@/lib/utils';
 import { Plus, Pencil, Trash2, X, Search, Upload } from 'lucide-react';
@@ -61,10 +62,9 @@ export default function AdminProductsPage() {
     if (!form.name || !form.price) { toast.error('Name & price required'); return; }
     setSaving(true);
     try {
-      const tempId = editing?.id ?? `temp-${Date.now()}`;
       let uploaded: string[] = [...existingImages];
       for (const file of newImages) {
-        const url = await uploadProductImage(file, tempId);
+        const url = await uploadImage(file);
         uploaded.push(url);
       }
 

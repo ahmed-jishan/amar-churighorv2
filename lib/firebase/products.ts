@@ -1,9 +1,8 @@
-import { db, storage } from './config';
+import { db } from './config';
 import {
   collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, startAfter, QueryDocumentSnapshot
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Product } from '@/types';
 
 const COLLECTION = 'products';
@@ -48,12 +47,6 @@ export async function updateProduct(id: string, data: Partial<Product>): Promise
 
 export async function deleteProduct(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id));
-}
-
-export async function uploadProductImage(file: File, productId: string): Promise<string> {
-  const storageRef = ref(storage, `products/${productId}/${Date.now()}_${file.name}`);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
 }
 
 // Categories
