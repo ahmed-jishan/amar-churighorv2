@@ -1,16 +1,24 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { getProducts, createProduct, updateProduct, deleteProduct } from '@/lib/firebase/products';
+import { getCategories } from '@/lib/firebase/categories';
 import { uploadImage } from '@/lib/cloudinary';
-import { Product } from '@/types';
+import { Product, ProductCategory, computeInventoryStatus } from '@/types';
 import { formatPrice } from '@/lib/utils';
-import { Plus, Pencil, Trash2, X, Search, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Search, Upload, Package } from 'lucide-react';
 import NeoButton from '@/components/ui/NeoButton';
 import toast from 'react-hot-toast';
 
-const CATEGORIES = ['Bangles', 'Earrings', 'Necklaces', 'Rings', 'Bracelets', 'Anklets', 'Sets', 'Others'];
+const MAX_IMAGES = 5;
+
+const INVENTORY_STYLES: Record<string, string> = {
+  in_stock: 'bg-green-500/20 text-green-400',
+  low_stock: 'bg-orange-500/20 text-orange-400',
+  out_of_stock: 'bg-red-500/20 text-red-400',
+};
 
 export default function AdminProductsPage() {
+  const [allCategories, setAllCategories] = useState<ProductCategory[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -20,7 +28,7 @@ export default function AdminProductsPage() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [form, setForm] = useState({
-    name: '', slug: '', category: CATEGORIES[0], description: '', price: '', discountPrice: '',
+    name: '', slug: '', category: '', description: '', price: '', discountPrice: '',
     sku: '', stock: '0', tags: '', isFeatured: false, isBestSeller: false, isActive: true,
   });
   const [newImages, setNewImages] = useState<File[]>([]);
@@ -28,7 +36,14 @@ export default function AdminProductsPage() {
   const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
 
   useEffect(() => {
-    getProducts().then(p => { setProducts(p); setLoading(false); });
+    Promise.all([
+      getProducts(),
+      getCategories(),
+    ]).then(([p, cats]) => {
+      setProducts(p);
+      setAllCategories(cats);
+      setLoading(false);
+    });
   }, []);
 
   const filtered = products.filter(p =>
@@ -36,7 +51,7 @@ export default function AdminProductsPage() {
   );
 
   function resetForm() {
-    setForm({ name: '', slug: '', category: CATEGORIES[0], description: '', price: '', discountPrice: '',
+    setForm({ name: '', slug: '', category: '', description: '', price: '', discountPrice: '',
       sku: '', stock: '0', tags: '', isFeatured: false, isBestSeller: false, isActive: true });
     setEditing(null);
     setNewImages([]);
@@ -67,6 +82,12 @@ export default function AdminProductsPage() {
 
   async function handleSave() {
     if (!form.name || !form.price) { toast.error('Name & price required'); return; }
+    if (!form.category) { toast.error('Please select a category'); return; }
+    const totalImageCount = existingImages.length + newImages.length;
+    if (totalImageCount > MAX_IMAGES) {
+      toast.error(`Maximum ${MAX_IMAGES} images allowed. You have ${totalImageCount} images.`);
+      return;
+    }
     setSaving(true);
     setUploadingImages(true);
     try {
@@ -80,6 +101,7 @@ export default function AdminProductsPage() {
       setUploadProgress(null);
       setUploadingImages(false);
 
+      const stockValue = Number(form.stock);
       const productData: Omit<Product, 'id'> = {
         name: form.name,
         slug: form.slug || generateSlug(form.name),
@@ -88,7 +110,10 @@ export default function AdminProductsPage() {
         price: Number(form.price),
         discountPrice: form.discountPrice ? Number(form.discountPrice) : undefined,
         sku: form.sku || `SKU-${Date.now()}`,
-        stock: Number(form.stock),
+        stock: stockValue,
+        initialStock: stockValue,
+        soldQuantity: 0,
+        availableStock: stockValue,
         tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
         images: uploaded,
         featuredImage: uploaded[0] || '',
@@ -101,7 +126,8 @@ export default function AdminProductsPage() {
       };
 
       if (editing) {
-        await updateProduct(editing.id, productData);
+        // When editing, preserve soldQuantity — only update stock/initialStock
+        await updateProduct(editing.id, { ...productData, soldQuantity: undefined });
         toast.success('Product updated!');
       } else {
         await createProduct(productData);
@@ -149,7 +175,7 @@ export default function AdminProductsPage() {
 
       {/* Products Table */}
       <div className="bg-[#0b2a2b] rounded-2xl border border-[#1f3334] overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scrollbar-admin">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#1f3334] text-gray-500 text-xs uppercase">
@@ -157,15 +183,19 @@ export default function AdminProductsPage() {
                 <th className="text-left p-4">SKU</th>
                 <th className="text-left p-4">Category</th>
                 <th className="text-left p-4">Price</th>
-                <th className="text-left p-4">Stock</th>
-                <th className="text-left p-4">Status</th>
+                <th className="text-left p-4">Available</th>
+                <th className="text-left p-4">Sold</th>
+                <th className="text-left p-4">Inventory</th>
                 <th className="text-left p-4">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? Array(5).fill(0).map((_, i) => (
-                <tr key={i}><td colSpan={7} className="p-4"><div className="h-4 animate-pulse bg-[#1f3334] rounded" /></td></tr>
-              )) : filtered.map(product => (
+                <tr key={i}><td colSpan={8} className="p-4"><div className="h-4 animate-pulse bg-[#1f3334] rounded" /></td></tr>
+              )) : filtered.map(product => {
+                const invStatus = computeInventoryStatus(product.availableStock);
+                const invLabel = invStatus === 'in_stock' ? 'In Stock' : invStatus === 'low_stock' ? 'Low Stock' : 'Out of Stock';
+                return (
                 <tr key={product.id} className="border-b border-[#1f3334]/40 hover:bg-[#051a1b] transition">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
@@ -178,14 +208,11 @@ export default function AdminProductsPage() {
                   <td className="p-4 text-gray-400 font-mono text-xs">{product.sku}</td>
                   <td className="p-4"><span className="text-xs bg-[#1f3334] text-gray-300 px-2 py-0.5 rounded-full">{product.category}</span></td>
                   <td className="p-4 text-green-400">{formatPrice(product.price)}</td>
+                  <td className="p-4 text-white">{product.availableStock}</td>
+                  <td className="p-4 text-gray-400">{product.soldQuantity}</td>
                   <td className="p-4">
-                    <span className={`${product.stock > 10 ? 'text-green-400' : product.stock > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
-                      {product.stock}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${product.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                      {product.isActive ? 'Active' : 'Inactive'}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${INVENTORY_STYLES[invStatus]}`}>
+                      {invLabel}
                     </span>
                   </td>
                   <td className="p-4">
@@ -199,7 +226,8 @@ export default function AdminProductsPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           {!loading && filtered.length === 0 && <div className="text-center py-12 text-gray-500">No products found</div>}
@@ -230,7 +258,8 @@ export default function AdminProductsPage() {
                   <label className="block text-xs text-gray-500 uppercase mb-1">Category</label>
                   <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                     className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm">
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    <option value="">Select a category *</option>
+                    {allCategories.filter(c => c.isActive).map(c => <option key={c.id} value={c.name}>{c.icon ? `${c.icon} ` : ''}{c.name}</option>)}
                   </select>
                 </div>
                 <div>
@@ -249,9 +278,12 @@ export default function AdminProductsPage() {
                     className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 uppercase mb-1">Stock</label>
+                  <label className="block text-xs text-gray-500 uppercase mb-1">Stock / Initial Inventory</label>
                   <input type="number" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: e.target.value }))}
                     className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm" />
+                  {editing && (
+                    <p className="text-xs text-gray-500 mt-1">Current: {editing.availableStock} available · {editing.soldQuantity} sold</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 uppercase mb-1">Tags (comma separated)</label>
@@ -267,9 +299,10 @@ export default function AdminProductsPage() {
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 uppercase mb-1">Images</label>
+                <label className="block text-xs text-gray-500 uppercase mb-1">
+                  Images <span className="text-gray-500 font-normal">({existingImages.length + newImages.length} / {MAX_IMAGES} Selected)</span>
+                </label>
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {/* Existing images from DB */}
                   {existingImages.map((url, i) => (
                     <div key={`existing-${i}`} className="relative w-16 h-16 rounded-lg overflow-hidden border border-[#1f3334] group">
                       <img src={url} alt="" className="w-full h-full object-cover" />
@@ -281,7 +314,6 @@ export default function AdminProductsPage() {
                       )}
                     </div>
                   ))}
-                  {/* New image previews from file selection */}
                   {newImagePreviews.map((preview, i) => (
                     <div key={`new-${i}`} className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-green-500/50">
                       <img src={preview} alt="" className="w-full h-full object-cover" />
@@ -296,12 +328,16 @@ export default function AdminProductsPage() {
                       )}
                     </div>
                   ))}
-                  {/* Upload button — hide while uploading */}
                   {!uploadingImages && (
                     <label className="w-16 h-16 flex items-center justify-center border-2 border-dashed border-[#1f3334] rounded-lg cursor-pointer hover:border-green-500 transition">
                       <Upload className="w-5 h-5 text-gray-500" />
                       <input type="file" accept="image/*" multiple className="hidden" onChange={e => {
                         const files = Array.from(e.target.files || []);
+                        const currentTotal = existingImages.length + newImages.length + files.length;
+                        if (currentTotal > MAX_IMAGES) {
+                          toast.error(`Maximum ${MAX_IMAGES} images allowed. You can add ${MAX_IMAGES - (existingImages.length + newImages.length)} more.`);
+                          return;
+                        }
                         const previews = files.map(f => URL.createObjectURL(f));
                         setNewImages(prev => [...prev, ...files]);
                         setNewImagePreviews(prev => [...prev, ...previews]);
@@ -309,7 +345,6 @@ export default function AdminProductsPage() {
                     </label>
                   )}
                 </div>
-                {/* Upload progress indicator */}
                 {uploadProgress && (
                   <div className="flex items-center gap-2 text-xs text-green-400 mt-1">
                     <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">

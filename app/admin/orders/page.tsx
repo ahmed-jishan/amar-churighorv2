@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { getAllOrders, updateOrderStatus } from '@/lib/firebase/orders';
 import { Order, OrderStatus } from '@/types';
 import { formatPrice } from '@/lib/utils';
-import { Search, ImageIcon } from 'lucide-react';
+import { Search, ImageIcon, Mail } from 'lucide-react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 
@@ -33,7 +33,8 @@ export default function AdminOrdersPage() {
   const filtered = orders.filter(o => {
     const matchSearch = !search || o.orderId.includes(search.toUpperCase()) ||
       o.customer.fullName.toLowerCase().includes(search.toLowerCase()) ||
-      o.customer.phone.includes(search);
+      o.customer.phone.includes(search) ||
+      (o.customer.email && o.customer.email.toLowerCase().includes(search.toLowerCase()));
     const matchStatus = filterStatus === 'all' || o.status === filterStatus;
     return matchSearch && matchStatus;
   });
@@ -54,7 +55,7 @@ export default function AdminOrdersPage() {
         <div className="relative">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-500" />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search order, name, phone..."
+            placeholder="Search order, name, email, phone..."
             className="pl-9 pr-4 py-2 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-sm text-white outline-none focus:border-green-500 w-64" />
         </div>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as typeof filterStatus)}
@@ -68,12 +69,13 @@ export default function AdminOrdersPage() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Orders List */}
         <div className="lg:col-span-2 bg-[#0b2a2b] rounded-2xl border border-[#1f3334] overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-admin">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#1f3334] text-gray-500 text-xs uppercase">
                   <th className="text-left p-4">Order</th>
                   <th className="text-left p-4">Customer</th>
+                  <th className="text-left p-4">Email</th>
                   <th className="text-left p-4">Total</th>
                   <th className="text-left p-4">Status</th>
                   <th className="text-left p-4">Date</th>
@@ -81,12 +83,13 @@ export default function AdminOrdersPage() {
               </thead>
               <tbody>
                 {loading ? Array(5).fill(0).map((_, i) => (
-                  <tr key={i}><td colSpan={5} className="p-4"><div className="h-4 animate-pulse bg-[#1f3334] rounded" /></td></tr>
+                  <tr key={i}><td colSpan={6} className="p-4"><div className="h-4 animate-pulse bg-[#1f3334] rounded" /></td></tr>
                 )) : filtered.map(order => (
                   <tr key={order.id} onClick={() => setSelected(order)}
                     className={`border-b border-[#1f3334]/50 cursor-pointer transition ${selected?.id === order.id ? 'bg-[#051a1b]' : 'hover:bg-[#051a1b]'}`}>
                     <td className="p-4 font-mono text-[#d7ffa4] text-xs">{order.orderId}</td>
                     <td className="p-4 text-white">{order.customer.fullName}<br /><span className="text-xs text-gray-500">{order.customer.phone}</span></td>
+                    <td className="p-4 text-gray-400 text-xs">{order.customer.email || '—'}</td>
                     <td className="p-4 text-green-400">{formatPrice(order.total)}</td>
                     <td className="p-4"><span className={`px-2 py-0.5 rounded-full text-xs border capitalize ${STATUS_COLORS[order.status]}`}>{order.status}</span></td>
                     <td className="p-4 text-gray-500 text-xs">{new Date(order.createdAt).toLocaleDateString()}</td>
@@ -116,6 +119,9 @@ export default function AdminOrdersPage() {
                 <div className="border-t border-[#1f3334] pt-4">
                   <p className="text-gray-500 mb-2 text-xs uppercase">Customer</p>
                   <p className="text-white font-medium">{selected.customer.fullName}</p>
+                  {selected.customer.email && (
+                    <p className="text-gray-400 flex items-center gap-1"><Mail className="w-3 h-3" /> {selected.customer.email}</p>
+                  )}
                   <p className="text-gray-400">{selected.customer.phone}</p>
                   <p className="text-gray-400 mt-1">{selected.customer.address}, {selected.customer.area}, {selected.customer.district}</p>
                   {selected.customer.notes && <p className="text-gray-500 mt-1 italic">Note: {selected.customer.notes}</p>}

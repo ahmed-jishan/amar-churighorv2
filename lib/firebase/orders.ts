@@ -4,6 +4,7 @@ import {
   where, orderBy, limit, Timestamp
 } from 'firebase/firestore';
 import { Order, OrderStatus } from '@/types';
+import { deductStockAtomic, replenishStock } from './products';
 
 const COLLECTION = 'orders';
 
@@ -14,6 +15,20 @@ function generateOrderId(): string {
 export async function createOrder(data: Omit<Order, 'id' | 'orderId' | 'createdAt' | 'updatedAt' | 'statusHistory'>): Promise<string> {
   const orderId = generateOrderId();
   const now = new Date().toISOString();
+
+  // Atomically deduct stock for each item
+  for (const item of data.items) {
+    const result = await deductStockAtomic(item.productId, item.quantity);
+    if (!result.success) {
+      // Stock deduction failed — replenish any already-deducted items
+      for (const prevItem of data.items) {
+        if (prevItem.productId === item.productId) break; // current & future not deducted
+        await replenishStock(prevItem.productId, prevItem.quantity);
+      }
+      throw new Error(`Insufficient stock for "${item.name}". Only ${result.available} available.`);
+    }
+  }
+
   const ref = await addDoc(collection(db, COLLECTION), {
     ...data,
     orderId,
@@ -29,12 +44,24 @@ export async function getOrderByOrderId(orderId: string): Promise<Order | null> 
   const q = query(collection(db, COLLECTION), where('orderId', '==', orderId), limit(1));
   const snap = await getDocs(q);
   if (snap.empty) return null;
-  return { id: snap.docs[0].id, ...snap.docs[0].data() } as Order;
+  const data = snap.docs[0].data();
+  // Backward compatibility: ensure email field exists
+  if (!data.customer?.email) {
+    data.customer = { ...data.customer, email: '' };
+  }
+  return { id: snap.docs[0].id, ...data } as Order;
 }
 
 export async function getAllOrders(): Promise<Order[]> {
   const snap = await getDocs(query(collection(db, COLLECTION), orderBy('createdAt', 'desc')));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Order));
+  return snap.docs.map(d => {
+    const data = d.data();
+    // Backward compatibility: ensure email field exists
+    if (!data.customer?.email) {
+      data.customer = { ...data.customer, email: '' };
+    }
+    return { id: d.id, ...data } as Order;
+  });
 }
 
 export async function updateOrderStatus(id: string, status: OrderStatus, note?: string): Promise<void> {

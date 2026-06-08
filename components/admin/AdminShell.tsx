@@ -5,15 +5,18 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { logoutAdmin } from '@/lib/firebase/auth';
 import {
-  LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Tag, Home, ChevronRight
+  LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Tag, Home, ChevronRight,
+  Layers, ImageIcon
 } from 'lucide-react';
 
 const NAV = [
   { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/admin/products', icon: Package, label: 'Products' },
+  { href: '/admin/categories', icon: Layers, label: 'Categories' },
   { href: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
   { href: '/admin/customers', icon: Users, label: 'Customers' },
   { href: '/admin/content', icon: Tag, label: 'Content' },
+  { href: '/admin/hero', icon: ImageIcon, label: 'Hero' },
   { href: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 

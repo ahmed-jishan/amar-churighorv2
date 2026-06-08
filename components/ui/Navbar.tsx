@@ -4,14 +4,17 @@ import { useCart } from '@/context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Search, Menu, X } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function Navbar() {
   const { totalItems, openCart } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hydrated, setHydrated] = useState(false);
   const router = useRouter();
+
+  useEffect(() => { setHydrated(true); }, []);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -63,16 +66,14 @@ export default function Navbar() {
 
             <button id="cart-target" onClick={openCart} className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition">
               <ShoppingBag className="w-5 h-5" />
-              <AnimatePresence>
-                {totalItems > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                    className="absolute -top-1 -right-1 bg-[#d7ffa4] text-[#1a1a1a] text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold"
-                  >
-                    {totalItems > 9 ? '9+' : totalItems}
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              {hydrated && totalItems > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }} animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 bg-[#d7ffa4] text-[#1a1a1a] text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold"
+                >
+                  {totalItems > 9 ? '9+' : totalItems}
+                </motion.span>
+              )}
             </button>
 
             <ThemeToggle />

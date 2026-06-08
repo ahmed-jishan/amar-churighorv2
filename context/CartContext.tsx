@@ -80,6 +80,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   const addToCart = (product: Product, sourceEl?: HTMLElement) => {
+    const available = product.availableStock ?? product.stock ?? 0;
+    const existingQty = cart.find(i => i.id === product.id)?.quantity ?? 0;
+    if (existingQty >= available) {
+      toast.error(`Only ${available} items are available.`, {
+        style: { background: '#fee2e2', color: '#991b1b', borderRadius: '12px', fontWeight: '600' },
+      });
+      return;
+    }
     if (sourceEl) flyAnimation(sourceEl);
     const exists = cart.find(i => i.id === product.id);
     toast.success(exists ? `+1 ${product.name}` : `${product.name} added!`, {
@@ -97,6 +105,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const updateQuantity = (id: string, quantity: number) => {
     if (quantity <= 0) { removeFromCart(id); return; }
+    const item = cart.find(i => i.id === id);
+    if (item) {
+      const available = item.availableStock ?? item.stock ?? 0;
+      if (quantity > available) {
+        toast.error(`Only ${available} items are available.`, {
+          style: { background: '#fee2e2', color: '#991b1b', borderRadius: '12px', fontWeight: '600' },
+        });
+        return;
+      }
+    }
     dispatch({ type: 'UPDATE', id, quantity });
   };
 

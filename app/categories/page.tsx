@@ -1,20 +1,28 @@
 'use client';
+import { useEffect, useState } from 'react';
+import { getCategories } from '@/lib/firebase/categories';
 import { useProducts } from '@/hooks/useProducts';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { ProductCategory } from '@/types';
 import { ShoppingBag } from 'lucide-react';
 
-const CATEGORY_ICONS: Record<string, string> = {
-  Electronics: '💻', Fashion: '👗', Home: '🏠', Beauty: '💄', Sports: '⚽', Books: '📚', Food: '🍎', Jewelry: '💍',
-};
-
 export default function CategoriesPage() {
-  const { products, loading } = useProducts({ isActive: true });
+  const [dbCategories, setDbCategories] = useState<ProductCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { products } = useProducts({ isActive: true });
 
-  const categories = loading ? [] : [...new Set(products.map(p => p.category))].map(cat => ({
-    name: cat,
-    count: products.filter(p => p.category === cat).length,
-    icon: CATEGORY_ICONS[cat] ?? '📦',
+  useEffect(() => {
+    getCategories().then(cats => {
+      setDbCategories(cats.filter(c => c.isActive));
+      setLoading(false);
+    });
+  }, []);
+
+  const categories = loading ? [] : dbCategories.map(cat => ({
+    name: cat.name,
+    icon: cat.icon || '📦',
+    count: products.filter(p => p.category === cat.name).length,
   }));
 
   return (

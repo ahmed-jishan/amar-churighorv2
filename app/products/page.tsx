@@ -1,16 +1,21 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useProducts } from '@/hooks/useProducts';
+import { getCategories } from '@/lib/firebase/categories';
 import ProductCard from '@/components/ui/ProductCard';
 import ProductSkeleton from '@/components/ui/ProductSkeleton';
+import { ProductCategory } from '@/types';
 import { motion } from 'framer-motion';
 import { SlidersHorizontal } from 'lucide-react';
-
-const CATEGORIES = ['All', 'Electronics', 'Fashion', 'Home', 'Beauty', 'Sports', 'Books'];
 
 export default function ProductsPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [sortBy, setSortBy] = useState<'newest' | 'price_asc' | 'price_desc'>('newest');
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+
+  useEffect(() => {
+    getCategories().then(cats => setCategories(cats.filter(c => c.isActive)));
+  }, []);
 
   const { products, loading } = useProducts({ isActive: true });
 
@@ -32,15 +37,15 @@ export default function ProductsPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-8">
         <div className="flex gap-2 flex-wrap">
-          {CATEGORIES.map(cat => (
-            <button key={cat} onClick={() => setActiveCategory(cat)}
+          {[{ id: 'all', name: 'All', slug: 'all' } as ProductCategory, ...categories].map(cat => (
+            <button key={cat.id} onClick={() => setActiveCategory(cat.name)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                activeCategory === cat
+                activeCategory === cat.name
                   ? 'bg-[#d7ffa4] text-[#1a1a1a] border-[#1a1a1a] dark:border-[#c9a96e]'
                   : 'border-[#1f3334] hover:border-green-500 text-gray-600 dark:text-gray-400'
               }`}
             >
-              {cat}
+              {cat.icon ? `${cat.icon} ` : ''}{cat.name}
             </button>
           ))}
         </div>

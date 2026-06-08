@@ -1,6 +1,15 @@
 'use client';
 import { Suspense } from 'react';
-import HeroCarousel from '@/components/ui/HeroCarousel';
+import dynamic from 'next/dynamic';
+
+const HeroCarousel = dynamic(() => import('@/components/ui/HeroCarousel'), {
+  loading: () => (
+    <div className="relative w-full overflow-hidden rounded-2xl shadow-xl border border-[#1f3334] h-[400px] md:h-[520px] bg-[#0b2a2b] flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-[#d7ffa4] border-t-transparent rounded-full animate-spin" />
+    </div>
+  ),
+  ssr: false,
+});
 import ProductCard from '@/components/ui/ProductCard';
 import ProductSkeleton from '@/components/ui/ProductSkeleton';
 import NeoButton from '@/components/ui/NeoButton';

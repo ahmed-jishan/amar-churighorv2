@@ -1,41 +1,183 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { HeroSlide } from '@/types';
+import { HeroSlide, HeroConfig, HeroTransition, DEFAULT_HERO_CONFIG } from '@/types';
+import { getHeroSlides, getHeroConfig } from '@/lib/firebase/content';
 
-const DEFAULT_SLIDES: HeroSlide[] = [
-  { id: '1', title: 'New Arrivals', subtitle: 'Discover our latest curated collection', image: '/hero-1.jpg', buttonText: 'Shop Now', buttonLink: '/products', isActive: true },
-  { id: '2', title: 'Summer Sale', subtitle: 'Up to 30% off on select products', image: '/hero-2.jpg', buttonText: 'View Offers', buttonLink: '/offers', isActive: true },
-  { id: '3', title: 'Premium Quality', subtitle: 'Handcrafted with love and care', image: '/hero-3.jpg', buttonText: 'Explore', buttonLink: '/products', isActive: true },
-];
+const FALLBACK_IMAGE = '/placeholder.png';
 
-export default function HeroCarousel({ slides = DEFAULT_SLIDES }: { slides?: HeroSlide[] }) {
-  const activeSlides = slides.filter(s => s.isActive);
+const TRANSITION_VARIANTS: Record<HeroTransition, {
+  enter: (d: number) => { x?: string; y?: string; scale?: number; opacity: number };
+  center: { x?: number; y?: number; scale?: number; opacity: number };
+  exit: (d: number) => { x?: string; y?: string; scale?: number; opacity: number; transition?: { duration: number } };
+}> = {
+  'fade': {
+    enter: () => ({ opacity: 0 }),
+    center: { opacity: 1 },
+    exit: () => ({ opacity: 0, transition: { duration: 0.3 } }),
+  },
+  'slide-left': {
+    enter: () => ({ x: '100%', opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (d) => ({ x: d < 0 ? '100%' : '-100%', opacity: 0 }),
+  },
+  'slide-right': {
+    enter: () => ({ x: '-100%', opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (d) => ({ x: d > 0 ? '-100%' : '100%', opacity: 0 }),
+  },
+  'zoom-in': {
+    enter: () => ({ scale: 0.8, opacity: 0 }),
+    center: { scale: 1, opacity: 1 },
+    exit: () => ({ scale: 1.1, opacity: 0 }),
+  },
+  'zoom-out': {
+    enter: () => ({ scale: 1.2, opacity: 0 }),
+    center: { scale: 1, opacity: 1 },
+    exit: () => ({ scale: 0.8, opacity: 0 }),
+  },
+  'cross-fade': {
+    enter: (d) => ({ opacity: 0, x: d > 0 ? '5%' : '-5%' }),
+    center: { x: 0, opacity: 1 },
+    exit: () => ({ opacity: 0 }),
+  },
+};
+
+function safeSlide(slide: any, index: number): HeroSlide {
+  return {
+    id: slide?.id || String(index),
+    title: slide?.title || '',
+    subtitle: slide?.subtitle || '',
+    description: slide?.description || '',
+    image: slide?.image || FALLBACK_IMAGE,
+    mobileImage: slide?.mobileImage || '',
+    bgImage: slide?.bgImage || '',
+    buttonText: slide?.buttonText || 'Shop Now',
+    buttonLink: slide?.buttonLink || '/products',
+    secondaryButtonText: slide?.secondaryButtonText || '',
+    secondaryButtonLink: slide?.secondaryButtonLink || '',
+    badgeText: slide?.badgeText || '',
+    promoLabel: slide?.promoLabel || '',
+    discountText: slide?.discountText || '',
+    overlayOpacity: slide?.overlayOpacity ?? 50,
+    textAlign: slide?.textAlign || 'left',
+    contentWidth: slide?.contentWidth || 'medium',
+    bgPosition: slide?.bgPosition || 'center',
+    bgFit: slide?.bgFit || 'cover',
+    transition: slide?.transition || 'fade',
+    sortOrder: slide?.sortOrder ?? 0,
+    isActive: slide?.isActive ?? true,
+    startDate: slide?.startDate || '',
+    endDate: slide?.endDate || '',
+    altText: slide?.altText || '',
+    metaTitle: slide?.metaTitle || '',
+    metaDescription: slide?.metaDescription || '',
+    createdAt: slide?.createdAt || new Date().toISOString(),
+  };
+}
+
+export default function HeroCarousel() {
+  const [slides, setSlides] = useState<HeroSlide[]>([]);
+  const [config, setConfig] = useState<HeroConfig>(DEFAULT_HERO_CONFIG);
+  const [loading, setLoading] = useState(true);
   const [current, setCurrent] = useState(0);
   const [dir, setDir] = useState(1);
-
-  const next = () => { setDir(1); setCurrent(p => (p + 1) % activeSlides.length); };
-  const prev = () => { setDir(-1); setCurrent(p => (p - 1 + activeSlides.length) % activeSlides.length); };
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const t = setInterval(next, 5000);
-    return () => clearInterval(t);
+    Promise.all([
+      getHeroSlides(),
+      getHeroConfig(),
+    ]).then(([data, cfg]) => {
+      const processed = data
+        .filter(s => s?.isActive)
+        .filter(s => {
+          if (s.startDate && new Date(s.startDate) > new Date()) return false;
+          if (s.endDate && new Date(s.endDate) < new Date()) return false;
+          return true;
+        })
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      setSlides(processed.map((s, i) => safeSlide(s, i)));
+      setConfig(cfg);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
-  const variants = {
-    enter: (d: number) => ({ x: d > 0 ? '100%' : '-100%', opacity: 0 }),
-    center: { x: 0, opacity: 1 },
-    exit: (d: number) => ({ x: d < 0 ? '100%' : '-100%', opacity: 0 }),
+  // Reset current index when slides change
+  useEffect(() => {
+    setCurrent(0);
+  }, [slides.length]);
+
+  const activeSlides = slides.filter(s => s && s.image);
+  const hasSlides = activeSlides.length > 0 && config.heroEnabled;
+
+  const next = useCallback(() => {
+    setDir(1);
+    setCurrent(p => (p + 1) % Math.max(1, activeSlides.length));
+  }, [activeSlides.length]);
+
+  const prev = useCallback(() => {
+    setDir(-1);
+    setCurrent(p => (p - 1 + Math.max(1, activeSlides.length)) % Math.max(1, activeSlides.length));
+  }, [activeSlides.length]);
+
+  // Autoplay
+  useEffect(() => {
+    if (!config.autoplay || !hasSlides) return;
+    intervalRef.current = setInterval(next, config.autoplaySpeed || 5000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [config.autoplay, config.autoplaySpeed, hasSlides, next]);
+
+  // Pause on hover
+  const pauseAutoplay = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  };
+  const resumeAutoplay = () => {
+    if (config.autoplay && hasSlides) {
+      intervalRef.current = setInterval(next, config.autoplaySpeed || 5000);
+    }
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="relative w-full overflow-hidden rounded-2xl shadow-xl border border-[#1f3334] h-[400px] md:h-[520px] bg-[#0b2a2b] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#d7ffa4] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // No slides or hero disabled — render nothing (no empty space)
+  if (!hasSlides) {
+    return null;
+  }
+
+  // Ensure current index is valid
+  const safeIndex = current >= activeSlides.length ? 0 : current;
+  const slide = activeSlides[safeIndex];
+  if (!slide) return null;
+
+  const transition = config.defaultTransition || 'fade';
+  const variants = TRANSITION_VARIANTS[transition] || TRANSITION_VARIANTS.fade;
+
+  const contentWidthClass = slide.contentWidth === 'narrow' ? 'max-w-lg' : slide.contentWidth === 'full' ? 'max-w-full' : 'max-w-2xl';
+  const bgPosClass = slide.bgPosition === 'top' ? 'object-top' : slide.bgPosition === 'bottom' ? 'object-bottom' : 'object-center';
+  const bgFitClass = slide.bgFit === 'contain' ? 'object-contain' : 'object-cover';
+
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl shadow-xl border border-[#1f3334] h-[400px] md:h-[520px]">
-      <AnimatePresence initial={false} custom={dir}>
+    <div
+      className="relative w-full overflow-hidden rounded-2xl shadow-xl border border-[#1f3334] h-[400px] md:h-[520px]"
+      onMouseEnter={pauseAutoplay}
+      onMouseLeave={resumeAutoplay}
+    >
+      <AnimatePresence initial={false} custom={dir} mode="wait">
         <motion.div
-          key={current}
+          key={safeIndex}
           custom={dir}
           variants={variants}
           initial="enter"
@@ -44,45 +186,88 @@ export default function HeroCarousel({ slides = DEFAULT_SLIDES }: { slides?: Her
           transition={{ duration: 0.5, ease: 'easeInOut' }}
           className="absolute inset-0"
         >
-          <Image src={activeSlides[current].image} alt={activeSlides[current].title} fill className="object-cover" priority={current === 0} />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end pb-12 px-8 md:px-16">
-            <div>
+          {/* Badge */}
+          {slide.badgeText && (
+            <span className="absolute top-5 left-5 z-20 text-xs bg-[#d7ffa4] text-[#1a1a1a] font-bold px-3 py-1 rounded-full border border-[#1a1a1a] shadow-lg">
+              {slide.badgeText}
+            </span>
+          )}
+
+          <Image
+            src={slide.image}
+            alt={slide.altText || slide.title || 'Hero banner'}
+            fill
+            className={`${bgFitClass} ${bgPosClass}`}
+            priority={safeIndex === 0}
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (target.src !== FALLBACK_IMAGE) target.src = FALLBACK_IMAGE;
+            }}
+          />
+          <div
+            className="absolute inset-0 flex items-end pb-12 px-8 md:px-16"
+            style={{
+              background: `linear-gradient(to top, rgba(0,0,0,${(slide.overlayOpacity ?? 50) / 100}) 0%, rgba(0,0,0,${((slide.overlayOpacity ?? 50) - 20) / 100}) 50%, transparent 100%)`,
+              textAlign: slide.textAlign || 'left',
+            }}
+          >
+            <div className={`w-full ${contentWidthClass} ${slide.textAlign === 'center' ? 'mx-auto' : slide.textAlign === 'right' ? 'ml-auto' : ''}`}>
               <motion.h2
                 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
                 className="text-3xl md:text-6xl font-bold text-white mb-3"
               >
-                {activeSlides[current].title}
+                {slide.title}
               </motion.h2>
               <motion.p
                 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
-                className="text-lg md:text-xl text-white/80 mb-6"
+                className="text-lg md:text-xl text-white/80 mb-2"
               >
-                {activeSlides[current].subtitle}
+                {slide.subtitle}
               </motion.p>
+              {slide.description && (
+                <motion.p
+                  initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}
+                  className="text-base text-white/60 mb-6 max-w-xl"
+                >
+                  {slide.description}
+                </motion.p>
+              )}
               <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
-                <Link href={activeSlides[current].buttonLink}
-                  className="inline-block bg-[#d7ffa4] text-[#1a1a1a] px-7 py-3 rounded-xl font-semibold border-2 border-[#1a1a1a] shadow-[3px_3px_0px_#1a1a1a] hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_#1a1a1a] transition-all">
-                  {activeSlides[current].buttonText}
-                </Link>
+                <div className="flex gap-3 flex-wrap" style={{ justifyContent: slide.textAlign === 'center' ? 'center' : slide.textAlign === 'right' ? 'flex-end' : 'flex-start' }}>
+                  <Link href={slide.buttonLink || '/products'}
+                    className="inline-block bg-[#d7ffa4] text-[#1a1a1a] px-7 py-3 rounded-xl font-semibold border-2 border-[#1a1a1a] shadow-[3px_3px_0px_#1a1a1a] hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_#1a1a1a] transition-all">
+                    {slide.buttonText}
+                  </Link>
+                  {slide.secondaryButtonText && (
+                    <Link href={slide.secondaryButtonLink || '#'}
+                      className="inline-block bg-white/10 backdrop-blur-sm text-white px-7 py-3 rounded-xl font-semibold border-2 border-white/30 hover:bg-white/20 hover:-translate-y-0.5 transition-all">
+                      {slide.secondaryButtonText}
+                    </Link>
+                  )}
+                </div>
               </motion.div>
             </div>
           </div>
         </motion.div>
       </AnimatePresence>
 
-      <button onClick={prev} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 backdrop-blur-sm rounded-full p-2 transition">
-        <ChevronLeft className="w-5 h-5 text-white" />
-      </button>
-      <button onClick={next} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 backdrop-blur-sm rounded-full p-2 transition">
-        <ChevronRight className="w-5 h-5 text-white" />
-      </button>
+      {activeSlides.length > 1 && (
+        <>
+          <button onClick={prev} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 backdrop-blur-sm rounded-full p-2 transition z-10">
+            <ChevronLeft className="w-5 h-5 text-white" />
+          </button>
+          <button onClick={next} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 backdrop-blur-sm rounded-full p-2 transition z-10">
+            <ChevronRight className="w-5 h-5 text-white" />
+          </button>
 
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2">
-        {activeSlides.map((_, i) => (
-          <button key={i} onClick={() => { setDir(i > current ? 1 : -1); setCurrent(i); }}
-            className={`h-1.5 rounded-full transition-all ${i === current ? 'w-8 bg-[#d7ffa4]' : 'w-2 bg-white/50'}`} />
-        ))}
-      </div>
+          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+            {activeSlides.map((_, i) => (
+              <button key={i} onClick={() => { setDir(i > safeIndex ? 1 : -1); setCurrent(i); }}
+                className={`h-1.5 rounded-full transition-all ${i === safeIndex ? 'w-8 bg-[#d7ffa4]' : 'w-2 bg-white/50'}`} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

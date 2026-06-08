@@ -55,8 +55,17 @@ export default function ProductCard({ product }: { product: Product }) {
             <span className="text-sm text-gray-400 line-through">{formatPrice(product.price)}</span>
           )}
         </div>
-        {product.stock === 0 ? (
-          <span className="mt-3 text-sm text-red-500 font-medium">Out of stock</span>
+        <div className="mt-2">
+          {product.availableStock > 10 ? (
+            <span className="text-xs text-green-500 font-medium">✓ In Stock</span>
+          ) : product.availableStock > 0 ? (
+            <span className="text-xs text-orange-400 font-medium">⚠ Only {product.availableStock} Left</span>
+          ) : (
+            <span className="text-xs text-red-500 font-medium">✕ Out of Stock</span>
+          )}
+        </div>
+        {product.availableStock === 0 ? (
+          <span className="mt-3 text-sm text-red-500 font-medium block">Out of stock</span>
         ) : (
           <div className="flex gap-2 mt-3">
             <NeoButton

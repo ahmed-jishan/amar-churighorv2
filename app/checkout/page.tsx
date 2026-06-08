@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -9,7 +9,7 @@ import { createOrder } from '@/lib/firebase/orders';
 import { formatPrice, DISTRICTS, DELIVERY_CHARGE } from '@/lib/utils';
 import Image from 'next/image';
 import NeoButton from '@/components/ui/NeoButton';
-import { MapPin, Phone, User, FileText } from 'lucide-react';
+import { MapPin, Phone, User, Mail, FileText } from 'lucide-react';
 
 export default function CheckoutPage() {
   const { cart, totalPrice, clearCart } = useCart();
@@ -25,10 +25,15 @@ export default function CheckoutPage() {
   const deliveryCharge = district === 'Dhaka' ? DELIVERY_CHARGE.inside_dhaka : DELIVERY_CHARGE.outside_dhaka;
   const grandTotal = totalPrice + deliveryCharge;
 
-  if (cart.length === 0) {
-    router.push('/products');
-    return null;
-  }
+  const [redirected, setRedirected] = useState(false);
+  useEffect(() => {
+    if (cart.length === 0 && !redirected) {
+      setRedirected(true);
+      router.push('/products');
+    }
+  }, [cart.length, redirected, router]);
+
+  if (cart.length === 0) return null;
 
   const onSubmit = async (data: CheckoutFormData) => {
     setSubmitting(true);
@@ -49,8 +54,8 @@ export default function CheckoutPage() {
       });
       clearCart();
       router.push(`/order-success?id=${orderId}`);
-    } catch (e) {
-      alert('Failed to place order. Please try again.');
+    } catch (e: any) {
+      alert(e.message || 'Failed to place order. Please try again.');
       setSubmitting(false);
     }
   };
@@ -70,6 +75,11 @@ export default function CheckoutPage() {
                   <input {...register('fullName')} placeholder="Full Name *"
                     className="w-full p-3 border border-[#1f3334] rounded-xl dark:bg-[#051a1b] outline-none focus:border-green-500 transition" />
                   {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName.message}</p>}
+                </div>
+                <div>
+                  <input {...register('email')} type="email" placeholder="Email Address *"
+                    className="w-full p-3 border border-[#1f3334] rounded-xl dark:bg-[#051a1b] outline-none focus:border-green-500 transition" />
+                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

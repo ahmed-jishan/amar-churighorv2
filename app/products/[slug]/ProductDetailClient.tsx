@@ -95,11 +95,31 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
 
           <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6">{product.description}</p>
 
-          <div className="flex items-center gap-2 mb-8 text-sm">
-            <Package className="w-4 h-4 text-gray-400" />
-            <span className={product.stock > 0 ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
-              {product.stock > 0 ? `In Stock (${product.stock} available)` : 'Out of Stock'}
-            </span>
+          <div className="mb-6 p-4 rounded-xl border border-[#1f3334] bg-[#0b2a2b]/30">
+            <div className="flex items-center gap-2 text-sm">
+              <Package className="w-4 h-4 text-gray-400" />
+              {product.availableStock > 10 ? (
+                <>
+                  <span className="text-green-500 font-medium">In Stock</span>
+                  <span className="text-gray-500">· {product.availableStock} available</span>
+                </>
+              ) : product.availableStock > 0 ? (
+                <>
+                  <span className="text-orange-400 font-medium">⚠ Low Stock</span>
+                  <span className="text-orange-400 font-bold">· Only {product.availableStock} left</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-red-500 font-medium">✕ Out of Stock</span>
+                  <span className="text-gray-500">· Unavailable</span>
+                </>
+              )}
+            </div>
+            {product.initialStock > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                {product.soldQuantity} sold · Initially stocked: {product.initialStock}
+              </p>
+            )}
           </div>
 
           {product.tags?.length > 0 && (
@@ -112,7 +132,13 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
             </div>
           )}
 
-          {product.stock > 0 && (
+          {product.availableStock === 0 ? (
+            <div className="flex flex-wrap gap-3">
+              <span className="flex-1 px-7 py-3 rounded-xl font-semibold text-center bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed border-2 border-gray-300 dark:border-gray-600">
+                Out of Stock
+              </span>
+            </div>
+          ) : (
             <div className="flex flex-wrap gap-3">
               <NeoButton
                 text="Add to Cart"

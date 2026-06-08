@@ -19,6 +19,28 @@
   }
 }
 
+/* Custom scrollbar for dark theme admin panels */
+.scrollbar-admin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-admin::-webkit-scrollbar-track {
+  background: #051a1b;
+  border-radius: 3px;
+}
+.scrollbar-admin::-webkit-scrollbar-thumb {
+  background: #1f3334;
+  border-radius: 3px;
+}
+.scrollbar-admin::-webkit-scrollbar-thumb:hover {
+  background: #2a4a4b;
+}
+/* Firefox */
+.scrollbar-admin {
+  scrollbar-width: thin;
+  scrollbar-color: #1f3334 #051a1b;
+}
+
 @layer utilities {
   .animate-float {
     animation: float 3s ease-in-out infinite;
