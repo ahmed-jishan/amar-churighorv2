@@ -87,10 +87,10 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
           <div className="flex items-center gap-2 mb-6">
             <div className="flex">
               {Array(5).fill(0).map((_, i) => (
-                <Star key={i} className={`w-4 h-4 ${i < Math.floor(product.rating ?? 4.5) ? 'fill-[#d7ffa4] text-[#d7ffa4]' : 'text-gray-300'}`} />
+                <Star key={i} className={`w-4 h-4 ${i < 4 ? 'fill-[#d7ffa4] text-[#d7ffa4]' : 'text-gray-300'}`} />
               ))}
             </div>
-            <span className="text-sm text-gray-500">({product.rating ?? '4.5'})</span>
+            <span className="text-sm text-gray-500">(4.5)</span>
           </div>
 
           <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6">{product.description}</p>

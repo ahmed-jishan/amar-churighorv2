@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { getAllOrders, updateOrderStatus } from '@/lib/firebase/orders';
 import { Order, OrderStatus } from '@/types';
 import { formatPrice } from '@/lib/utils';
-import { Search } from 'lucide-react';
+import { Search, ImageIcon } from 'lucide-react';
+import Image from 'next/image';
 import toast from 'react-hot-toast';
 
 const STATUSES: OrderStatus[] = ['pending', 'confirmed', 'processing', 'packed', 'shipped', 'delivered', 'cancelled'];
@@ -123,9 +124,19 @@ export default function AdminOrdersPage() {
                 <div className="border-t border-[#1f3334] pt-4">
                   <p className="text-gray-500 mb-2 text-xs uppercase">Items</p>
                   {selected.items.map((item, i) => (
-                    <div key={i} className="flex justify-between py-1">
-                      <span className="text-gray-300">{item.name} ×{item.quantity}</span>
-                      <span className="text-green-400">{formatPrice(item.price * item.quantity)}</span>
+                    <div key={i} className="flex items-center gap-3 py-1.5 border-b border-[#1f3334]/30 last:border-b-0">
+                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#1f3334] flex-shrink-0">
+                        {item.image ? (
+                          <Image src={item.image} alt={item.name} width={40} height={40} className="object-cover w-full h-full" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-4 h-4 text-gray-600" /></div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-gray-300 text-xs truncate">{item.name}</p>
+                        <p className="text-gray-500 text-xs">×{item.quantity}</p>
+                      </div>
+                      <span className="text-green-400 text-xs font-medium whitespace-nowrap">{formatPrice(item.price * item.quantity)}</span>
                     </div>
                   ))}
                   <div className="border-t border-[#1f3334] mt-2 pt-2 flex justify-between font-bold text-white">

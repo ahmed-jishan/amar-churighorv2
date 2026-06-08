@@ -17,12 +17,15 @@ export default function AdminProductsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '', slug: '', category: CATEGORIES[0], description: '', price: '', discountPrice: '',
     sku: '', stock: '0', tags: '', isFeatured: false, isBestSeller: false, isActive: true,
   });
   const [newImages, setNewImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
 
   useEffect(() => {
     getProducts().then(p => { setProducts(p); setLoading(false); });
@@ -38,6 +41,8 @@ export default function AdminProductsPage() {
     setEditing(null);
     setNewImages([]);
     setExistingImages([]);
+    setNewImagePreviews([]);
+    setUploadProgress(null);
   }
 
   function openEdit(product: Product) {
@@ -51,6 +56,8 @@ export default function AdminProductsPage() {
     });
     setExistingImages(product.images || []);
     setNewImages([]);
+    setNewImagePreviews([]);
+    setUploadProgress(null);
     setShowForm(true);
   }
 
@@ -61,12 +68,17 @@ export default function AdminProductsPage() {
   async function handleSave() {
     if (!form.name || !form.price) { toast.error('Name & price required'); return; }
     setSaving(true);
+    setUploadingImages(true);
     try {
       let uploaded: string[] = [...existingImages];
-      for (const file of newImages) {
+      for (let idx = 0; idx < newImages.length; idx++) {
+        const file = newImages[idx];
+        setUploadProgress(`Uploading image ${idx + 1} of ${newImages.length}...`);
         const url = await uploadImage(file);
         uploaded.push(url);
       }
+      setUploadProgress(null);
+      setUploadingImages(false);
 
       const productData: Omit<Product, 'id'> = {
         name: form.name,
@@ -257,23 +269,56 @@ export default function AdminProductsPage() {
               <div>
                 <label className="block text-xs text-gray-500 uppercase mb-1">Images</label>
                 <div className="flex flex-wrap gap-2 mb-2">
+                  {/* Existing images from DB */}
                   {existingImages.map((url, i) => (
-                    <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-[#1f3334]">
+                    <div key={`existing-${i}`} className="relative w-16 h-16 rounded-lg overflow-hidden border border-[#1f3334] group">
                       <img src={url} alt="" className="w-full h-full object-cover" />
-                      <button onClick={() => setExistingImages(prev => prev.filter((_, idx) => idx !== i))}
-                        className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                        <X className="w-3 h-3 text-white" />
-                      </button>
+                      {!uploadingImages && (
+                        <button onClick={() => setExistingImages(prev => prev.filter((_, idx) => idx !== i))}
+                          className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                          <X className="w-3 h-3 text-white" />
+                        </button>
+                      )}
                     </div>
                   ))}
-                  <label className="w-16 h-16 flex items-center justify-center border-2 border-dashed border-[#1f3334] rounded-lg cursor-pointer hover:border-green-500 transition">
-                    <Upload className="w-5 h-5 text-gray-500" />
-                    <input type="file" accept="image/*" multiple className="hidden" onChange={e => {
-                      const files = Array.from(e.target.files || []);
-                      setNewImages(prev => [...prev, ...files]);
-                    }} />
-                  </label>
+                  {/* New image previews from file selection */}
+                  {newImagePreviews.map((preview, i) => (
+                    <div key={`new-${i}`} className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-green-500/50">
+                      <img src={preview} alt="" className="w-full h-full object-cover" />
+                      {!uploadingImages && (
+                        <button onClick={() => {
+                          setNewImages(prev => prev.filter((_, idx) => idx !== i));
+                          setNewImagePreviews(prev => prev.filter((_, idx) => idx !== i));
+                        }}
+                          className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                          <X className="w-3 h-3 text-white" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {/* Upload button — hide while uploading */}
+                  {!uploadingImages && (
+                    <label className="w-16 h-16 flex items-center justify-center border-2 border-dashed border-[#1f3334] rounded-lg cursor-pointer hover:border-green-500 transition">
+                      <Upload className="w-5 h-5 text-gray-500" />
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={e => {
+                        const files = Array.from(e.target.files || []);
+                        const previews = files.map(f => URL.createObjectURL(f));
+                        setNewImages(prev => [...prev, ...files]);
+                        setNewImagePreviews(prev => [...prev, ...previews]);
+                      }} />
+                    </label>
+                  )}
                 </div>
+                {/* Upload progress indicator */}
+                {uploadProgress && (
+                  <div className="flex items-center gap-2 text-xs text-green-400 mt-1">
+                    <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    {uploadProgress}
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-4">
