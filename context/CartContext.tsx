@@ -61,24 +61,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('ac_cart', JSON.stringify(cart));
   }, [cart]);
 
-  function flyAnimation(sourceEl: HTMLElement) {
-    const clone = sourceEl.cloneNode(true) as HTMLElement;
-    const rect = sourceEl.getBoundingClientRect();
-    Object.assign(clone.style, {
-      position: 'fixed', zIndex: '9999', width: '60px', height: '60px',
-      borderRadius: '50%', objectFit: 'cover', pointerEvents: 'none',
-      top: `${rect.top}px`, left: `${rect.left}px`, transition: 'none',
-    });
-    document.body.appendChild(clone);
-    const cartEl = document.querySelector('#navbar-cart-icon');
-    const cartRect = cartEl?.getBoundingClientRect() ?? { top: 16, left: window.innerWidth - 60 };
-    clone.animate([
-      { transform: 'scale(1)', top: `${rect.top}px`, left: `${rect.left}px`, opacity: 1 },
-      { transform: 'scale(0.15)', top: `${cartRect.top}px`, left: `${cartRect.left}px`, opacity: 0 },
-    ], { duration: 650, easing: 'cubic-bezier(0.25,0.46,0.45,0.94)', fill: 'forwards' });
-    setTimeout(() => clone.remove(), 700);
-  }
-
   const addToCart = (product: Product, sourceEl?: HTMLElement) => {
     const available = product.availableStock ?? product.stock ?? 0;
     const existingQty = cart.find(i => i.id === product.id)?.quantity ?? 0;
@@ -88,7 +70,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       });
       return;
     }
-    if (sourceEl) flyAnimation(sourceEl);
     const exists = cart.find(i => i.id === product.id);
     toast.success(exists ? `+1 ${product.name}` : `${product.name} added!`, {
       icon: exists ? '🛒' : '🎉',

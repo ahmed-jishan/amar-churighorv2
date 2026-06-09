@@ -1,5 +1,4 @@
-import * as functions from 'firebase-functions/v2';
-import type { CallableRequest } from 'firebase-functions/v2/https';
+import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 
 admin.initializeApp();
@@ -9,11 +8,10 @@ admin.initializeApp();
  * Only callable by an authenticated, non-suspended super_admin.
  * Uses Admin SDK server-side — never touches the caller's auth session.
  */
-export const createAdminUser = functions.https.onCall(
-  { region: 'us-central1', enforceAppCheck: false },
-  async (request: CallableRequest) => {
+export const createAdminUser = functions.region('us-central1').https.onCall(
+  async (data, context) => {
     // ── 1. Authentication check ──────────────────────────
-    if (!request.auth) {
+    if (!context.auth) {
       throw new functions.https.HttpsError(
         'unauthenticated',
         'You must be logged in.'
@@ -24,7 +22,7 @@ export const createAdminUser = functions.https.onCall(
     const callerDoc = await admin
       .firestore()
       .collection('admins')
-      .doc(request.auth.uid)
+      .doc(context.auth.uid)
       .get();
 
     if (!callerDoc.exists) {
@@ -51,7 +49,7 @@ export const createAdminUser = functions.https.onCall(
     }
 
     // ── 3. Input validation ──────────────────────────────
-    const { name, email, password } = request.data;
+    const { name, email, password } = data as { name?: string; email?: string; password?: string };
 
     if (!name || !email || !password) {
       throw new functions.https.HttpsError(
@@ -103,14 +101,13 @@ export const createAdminUser = functions.https.onCall(
  * Deletes an admin user (Auth + Firestore).
  * Cannot delete self or a super_admin.
  */
-export const deleteAdminUser = functions.https.onCall(
-  { region: 'us-central1', enforceAppCheck: false },
-  async (request: CallableRequest) => {
-    if (!request.auth) {
+export const deleteAdminUser = functions.region('us-central1').https.onCall(
+  async (data, context) => {
+    if (!context.auth) {
       throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
     }
 
-    const callerDoc = await admin.firestore().collection('admins').doc(request.auth.uid).get();
+    const callerDoc = await admin.firestore().collection('admins').doc(context.auth.uid).get();
     if (!callerDoc.exists) {
       throw new functions.https.HttpsError('permission-denied', 'Not authorized.');
     }
@@ -120,9 +117,9 @@ export const deleteAdminUser = functions.https.onCall(
       throw new functions.https.HttpsError('permission-denied', 'Only Super Admins can delete admins.');
     }
 
-    const { uid } = request.data;
+    const { uid } = data as { uid?: string };
     if (!uid) throw new functions.https.HttpsError('invalid-argument', 'Admin UID is required.');
-    if (uid === request.auth.uid) throw new functions.https.HttpsError('invalid-argument', 'Cannot delete yourself.');
+    if (uid === context.auth.uid) throw new functions.https.HttpsError('invalid-argument', 'Cannot delete yourself.');
 
     const targetDoc = await admin.firestore().collection('admins').doc(uid).get();
     if (!targetDoc.exists) throw new functions.https.HttpsError('not-found', 'Admin not found.');
@@ -139,14 +136,13 @@ export const deleteAdminUser = functions.https.onCall(
 /**
  * Updates an admin user (name + displayName, and/or isSuspended).
  */
-export const updateAdminUser = functions.https.onCall(
-  { region: 'us-central1', enforceAppCheck: false },
-  async (request: CallableRequest) => {
-    if (!request.auth) {
+export const updateAdminUser = functions.region('us-central1').https.onCall(
+  async (data, context) => {
+    if (!context.auth) {
       throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
     }
 
-    const callerDoc = await admin.firestore().collection('admins').doc(request.auth.uid).get();
+    const callerDoc = await admin.firestore().collection('admins').doc(context.auth.uid).get();
     if (!callerDoc.exists) {
       throw new functions.https.HttpsError('permission-denied', 'Not authorized.');
     }
@@ -156,7 +152,7 @@ export const updateAdminUser = functions.https.onCall(
       throw new functions.https.HttpsError('permission-denied', 'Only Super Admins can update admins.');
     }
 
-    const { uid, name, isSuspended } = request.data;
+    const { uid, name, isSuspended } = data as { uid?: string; name?: string; isSuspended?: boolean };
     if (!uid) throw new functions.https.HttpsError('invalid-argument', 'Admin UID is required.');
 
     const updateData: Record<string, unknown> = {};

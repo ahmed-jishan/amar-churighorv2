@@ -66,7 +66,7 @@ export default function ProductsPage() {
           <p className="text-gray-500">No products found in this category.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {loading
             ? Array(8).fill(0).map((_, i) => <ProductSkeleton key={i} />)
             : filtered.map(p => <ProductCard key={p.id} product={p} />)

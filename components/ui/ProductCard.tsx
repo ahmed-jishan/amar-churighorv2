@@ -29,18 +29,18 @@ export default function ProductCard({ product }: { product: Product }) {
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.45, type: 'spring', stiffness: 120 }}
-      whileHover={{ y: -6 }}
-      className="group bg-white dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden
-                 hover:shadow-2xl hover:shadow-green-500/10 transition-all duration-500 flex flex-col
+      transition={{ duration: 0.4, type: 'spring', stiffness: 120 }}
+      whileHover={{ y: -4 }}
+      className="group bg-white dark:bg-gray-900/60 backdrop-blur-sm rounded-xl shadow-md overflow-hidden
+                 hover:shadow-xl hover:shadow-green-500/8 transition-all duration-400 flex flex-col
                  border border-[#1f3334]"
     >
-      <Link href={`/products/${product.slug}`} className="block overflow-hidden bg-gray-100 dark:bg-gray-800 relative aspect-square">
+      <Link href={`/products/${product.slug}`} className="block overflow-hidden bg-gray-100 dark:bg-gray-800 relative aspect-[4/3]">
         {product.isNewArrival && (
-          <span className="absolute top-3 left-3 z-10 text-xs bg-[#d7ffa4] text-[#1a1a1a] font-bold px-2 py-0.5 rounded-full border border-[#1a1a1a]">New</span>
+          <span className="absolute top-2 left-2 z-10 text-[10px] bg-[#d7ffa4] text-[#1a1a1a] font-bold px-1.5 py-0.5 rounded-full border border-[#1a1a1a] leading-tight">New</span>
         )}
         {hasDiscount && (
-          <span className="absolute top-3 right-3 z-10 text-xs bg-red-500 text-white font-bold px-2 py-0.5 rounded-full">
+          <span className="absolute top-2 right-2 z-10 text-[10px] bg-red-500 text-white font-bold px-1.5 py-0.5 rounded-full leading-tight">
             -{Math.round(((product.price - product.discountPrice!) / product.price) * 100)}%
           </span>
         )}
@@ -48,48 +48,48 @@ export default function ProductCard({ product }: { product: Product }) {
           src={imageSrc}
           alt={product.name}
           width={400}
-          height={400}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-          style={{ aspectRatio: '1/1' }}
+          height={300}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          style={{ aspectRatio: '4/3' }}
         />
       </Link>
-      <div className="p-5 flex-1 flex flex-col">
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{product.category}</p>
-        <h3 className="font-semibold line-clamp-2 mb-auto">{product.name}</h3>
-        <div className="flex items-center gap-2 mt-3">
-          <span className="text-lg font-bold text-green-600 dark:text-green-400">{formatPrice(effectivePrice)}</span>
+      <div className="p-3 flex-1 flex flex-col gap-1.5">
+        <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate leading-tight">{product.category}</p>
+        <h3 className="text-sm font-semibold line-clamp-2 leading-snug">{product.name}</h3>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-bold text-green-600 dark:text-green-400">{formatPrice(effectivePrice)}</span>
           {hasDiscount && (
-            <span className="text-sm text-gray-400 line-through">{formatPrice(product.price)}</span>
+            <span className="text-[11px] text-gray-400 line-through">{formatPrice(product.price)}</span>
           )}
         </div>
-        <div className="mt-2">
+        <div className="flex items-center gap-1.5">
           {product.availableStock > 10 ? (
-            <span className="text-xs text-green-500 font-medium">✓ In Stock</span>
+            <span className="text-[10px] text-green-500 font-medium leading-tight">✓ In Stock</span>
           ) : product.availableStock > 0 ? (
-            <span className="text-xs text-orange-400 font-medium">⚠ Only {product.availableStock} Left</span>
+            <span className="text-[10px] text-orange-400 font-medium leading-tight">⚠ Only {product.availableStock} Left</span>
           ) : (
-            <span className="text-xs text-red-500 font-medium">✕ Out of Stock</span>
+            <span className="text-[10px] text-red-500 font-medium leading-tight">✕ Out of Stock</span>
           )}
         </div>
         {product.availableStock === 0 ? (
-          <span className="mt-3 text-sm text-red-500 font-medium block">Out of stock</span>
+          <span className="text-xs text-red-500 font-medium block text-center py-1.5 mt-auto border border-red-500/30 rounded-lg bg-red-500/5">Out of stock</span>
         ) : (
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-1.5 mt-auto">
             <NeoButton
               text="Add to Cart"
               onClick={handleAdd}
-              className="flex-1 text-sm py-2
-                bg-[#d7ffa4] text-[#1a1a1a] border-[#1a1a1a] shadow-[3px_3px_0px_#1a1a1a]
-                dark:bg-[#0f2f30] dark:text-[#e6d3a3] dark:border-[#c9a96e] dark:shadow-[3px_3px_0px_#c9a96e]
-                hover:dark:-translate-y-0.5 hover:dark:bg-[#143a3b] hover:dark:text-white hover:dark:shadow-[5px_5px_0px_#c9a96e]"
+              className="flex-1 text-[11px] py-1.5 leading-tight
+                bg-[#d7ffa4] text-[#1a1a1a] border-[#1a1a1a] shadow-[2px_2px_0px_#1a1a1a]
+                dark:bg-[#0f2f30] dark:text-[#e6d3a3] dark:border-[#c9a96e] dark:shadow-[2px_2px_0px_#c9a96e]
+                hover:dark:-translate-y-0.5 hover:dark:bg-[#143a3b] hover:dark:text-white hover:dark:shadow-[3px_3px_0px_#c9a96e]"
             />
             <Link href={`/products/${product.slug}`}>
               <NeoButton
                 text="View"
-                className="text-sm py-2 px-4
+                className="text-[11px] py-1.5 px-3 leading-tight
                   bg-white text-black border-black shadow-none hover:shadow-[2px_2px_0px_black]
                   dark:bg-[#0b2a2b] dark:text-[#e6d3a3] dark:border-[#c9a96e] dark:shadow-none
-                  dark:hover:bg-[#0f3334] dark:hover:text-white dark:hover:shadow-[4px_4px_0px_#c9a96e]"
+                  dark:hover:bg-[#0f3334] dark:hover:text-white dark:hover:shadow-[3px_3px_0px_#c9a96e]"
               />
             </Link>
           </div>

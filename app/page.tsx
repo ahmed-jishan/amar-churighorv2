@@ -23,7 +23,7 @@ function FeaturedProducts() {
   const display = loading ? [] : products.slice(0, 3);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {loading
         ? Array(3).fill(0).map((_, i) => <ProductSkeleton key={i} />)
         : display.map(p => <ProductCard key={p.id} product={p} />)
@@ -36,7 +36,7 @@ function BestSellers() {
   const { products, loading } = useProducts({ isBestSeller: true, isActive: true });
   const display = loading ? [] : products.slice(0, 4);
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {loading
         ? Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)
         : display.map(p => <ProductCard key={p.id} product={p} />)
@@ -81,7 +81,7 @@ export default function HomePage() {
             className="bg-white text-black border-black shadow-none hover:shadow-[3px_3px_0px_black]
             dark:bg-transparent dark:text-gray-300 dark:border-[#1f3334] dark:hover:border-green-400 dark:hover:text-green-400" /></Link>
         </div>
-        <Suspense fallback={<div className="grid grid-cols-1 md:grid-cols-3 gap-6">{Array(3).fill(0).map((_, i) => <ProductSkeleton key={i} />)}</div>}>
+        <Suspense fallback={<div className="grid grid-cols-1 md:grid-cols-3 gap-4">{Array(3).fill(0).map((_, i) => <ProductSkeleton key={i} />)}</div>}>
           <FeaturedProducts />
         </Suspense>
       </section>
@@ -115,7 +115,7 @@ export default function HomePage() {
             className="bg-white text-black border-black shadow-none hover:shadow-[3px_3px_0px_black]
             dark:bg-transparent dark:text-gray-300 dark:border-[#1f3334] dark:hover:border-green-400 dark:hover:text-green-400" /></Link>
         </div>
-        <Suspense fallback={<div className="grid grid-cols-2 lg:grid-cols-4 gap-6">{Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)}</div>}>
+        <Suspense fallback={<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)}</div>}>
           <BestSellers />
         </Suspense>
       </section>

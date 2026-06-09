@@ -34,7 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateAdminUser = exports.deleteAdminUser = exports.createAdminUser = void 0;
-const functions = __importStar(require("firebase-functions/v2"));
+const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 /**
@@ -42,16 +42,16 @@ admin.initializeApp();
  * Only callable by an authenticated, non-suspended super_admin.
  * Uses Admin SDK server-side — never touches the caller's auth session.
  */
-exports.createAdminUser = functions.https.onCall({ region: 'us-central1', enforceAppCheck: false }, async (request) => {
+exports.createAdminUser = functions.region('us-central1').https.onCall(async (data, context) => {
     // ── 1. Authentication check ──────────────────────────
-    if (!request.auth) {
+    if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
     }
     // ── 2. Role check — Firestore থেকে verify করো ───────
     const callerDoc = await admin
         .firestore()
         .collection('admins')
-        .doc(request.auth.uid)
+        .doc(context.auth.uid)
         .get();
     if (!callerDoc.exists) {
         throw new functions.https.HttpsError('permission-denied', 'You are not an admin.');
@@ -64,7 +64,7 @@ exports.createAdminUser = functions.https.onCall({ region: 'us-central1', enforc
         throw new functions.https.HttpsError('permission-denied', 'Only Super Admins can create admins.');
     }
     // ── 3. Input validation ──────────────────────────────
-    const { name, email, password } = request.data;
+    const { name, email, password } = data;
     if (!name || !email || !password) {
         throw new functions.https.HttpsError('invalid-argument', 'name, email and password are required.');
     }
@@ -101,11 +101,11 @@ exports.createAdminUser = functions.https.onCall({ region: 'us-central1', enforc
  * Deletes an admin user (Auth + Firestore).
  * Cannot delete self or a super_admin.
  */
-exports.deleteAdminUser = functions.https.onCall({ region: 'us-central1', enforceAppCheck: false }, async (request) => {
-    if (!request.auth) {
+exports.deleteAdminUser = functions.region('us-central1').https.onCall(async (data, context) => {
+    if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
     }
-    const callerDoc = await admin.firestore().collection('admins').doc(request.auth.uid).get();
+    const callerDoc = await admin.firestore().collection('admins').doc(context.auth.uid).get();
     if (!callerDoc.exists) {
         throw new functions.https.HttpsError('permission-denied', 'Not authorized.');
     }
@@ -113,10 +113,10 @@ exports.deleteAdminUser = functions.https.onCall({ region: 'us-central1', enforc
     if (callerData.role !== 'super_admin') {
         throw new functions.https.HttpsError('permission-denied', 'Only Super Admins can delete admins.');
     }
-    const { uid } = request.data;
+    const { uid } = data;
     if (!uid)
         throw new functions.https.HttpsError('invalid-argument', 'Admin UID is required.');
-    if (uid === request.auth.uid)
+    if (uid === context.auth.uid)
         throw new functions.https.HttpsError('invalid-argument', 'Cannot delete yourself.');
     const targetDoc = await admin.firestore().collection('admins').doc(uid).get();
     if (!targetDoc.exists)
@@ -131,11 +131,11 @@ exports.deleteAdminUser = functions.https.onCall({ region: 'us-central1', enforc
 /**
  * Updates an admin user (name + displayName, and/or isSuspended).
  */
-exports.updateAdminUser = functions.https.onCall({ region: 'us-central1', enforceAppCheck: false }, async (request) => {
-    if (!request.auth) {
+exports.updateAdminUser = functions.region('us-central1').https.onCall(async (data, context) => {
+    if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
     }
-    const callerDoc = await admin.firestore().collection('admins').doc(request.auth.uid).get();
+    const callerDoc = await admin.firestore().collection('admins').doc(context.auth.uid).get();
     if (!callerDoc.exists) {
         throw new functions.https.HttpsError('permission-denied', 'Not authorized.');
     }
@@ -143,7 +143,7 @@ exports.updateAdminUser = functions.https.onCall({ region: 'us-central1', enforc
     if (callerData.role !== 'super_admin') {
         throw new functions.https.HttpsError('permission-denied', 'Only Super Admins can update admins.');
     }
-    const { uid, name, isSuspended } = request.data;
+    const { uid, name, isSuspended } = data;
     if (!uid)
         throw new functions.https.HttpsError('invalid-argument', 'Admin UID is required.');
     const updateData = {};
