@@ -8,9 +8,27 @@ interface AdminContextType {
   user: User | null;
   admin: Admin | null;
   loading: boolean;
+  isSuperAdmin: boolean;
+  isAdmin: boolean;
+  canManageAdmins: boolean;
+  canCreateAdmin: boolean;
+  canEditAdmin: boolean;
+  canDeleteAdmin: boolean;
+  canSuspendAdmin: boolean;
 }
 
-const AdminContext = createContext<AdminContextType>({ user: null, admin: null, loading: true });
+const AdminContext = createContext<AdminContextType>({
+  user: null,
+  admin: null,
+  loading: true,
+  isSuperAdmin: false,
+  isAdmin: false,
+  canManageAdmins: false,
+  canCreateAdmin: false,
+  canEditAdmin: false,
+  canDeleteAdmin: false,
+  canSuspendAdmin: false,
+});
 
 export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -31,7 +49,26 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     return unsub;
   }, []);
 
-  return <AdminContext.Provider value={{ user, admin, loading }}>{children}</AdminContext.Provider>;
+  const role = admin?.role || '';
+  const isSuperAdmin = role === 'super_admin';
+  const isAdmin = role === 'admin' || isSuperAdmin;
+
+  // Permission helpers
+  const canManageAdmins = isSuperAdmin;
+  const canCreateAdmin = isSuperAdmin;
+  const canEditAdmin = isSuperAdmin;
+  const canDeleteAdmin = isSuperAdmin;
+  const canSuspendAdmin = isSuperAdmin;
+
+  return (
+    <AdminContext.Provider value={{
+      user, admin, loading,
+      isSuperAdmin, isAdmin,
+      canManageAdmins, canCreateAdmin, canEditAdmin, canDeleteAdmin, canSuspendAdmin,
+    }}>
+      {children}
+    </AdminContext.Provider>
+  );
 }
 
 export const useAdmin = () => useContext(AdminContext);

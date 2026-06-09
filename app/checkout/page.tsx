@@ -6,7 +6,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { checkoutSchema, CheckoutFormData } from '@/lib/validators/checkout';
 import { createOrder } from '@/lib/firebase/orders';
-import { formatPrice, DISTRICTS, DELIVERY_CHARGE } from '@/lib/utils';
+import { getStoreConfig, StoreConfig } from '@/lib/firebase/settings';
+import { formatPrice, DISTRICTS } from '@/lib/utils';
 import Image from 'next/image';
 import NeoButton from '@/components/ui/NeoButton';
 import { MapPin, Phone, User, Mail, FileText } from 'lucide-react';
@@ -21,8 +22,16 @@ export default function CheckoutPage() {
     resolver: zodResolver(checkoutSchema),
   });
 
+  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
+
+  useEffect(() => {
+    getStoreConfig().then(setStoreConfig);
+  }, []);
+
   const district = watch('district');
-  const deliveryCharge = district === 'Dhaka' ? DELIVERY_CHARGE.inside_dhaka : DELIVERY_CHARGE.outside_dhaka;
+  const deliveryCharge = district === 'Dhaka'
+    ? (storeConfig?.deliveryChargeInside ?? 80)
+    : (storeConfig?.deliveryChargeOutside ?? 130);
   const grandTotal = totalPrice + deliveryCharge;
 
   const [redirected, setRedirected] = useState(false);

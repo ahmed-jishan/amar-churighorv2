@@ -78,33 +78,39 @@ export async function createProduct(data: Omit<Product, 'id'>): Promise<string> 
 }
 
 export async function updateProduct(id: string, data: Partial<Product>): Promise<void> {
-  // Recalculate inventory if stock-related fields change
   const updatePayload: Record<string, any> = { ...data, updatedAt: new Date().toISOString() };
+  const existing = await getProductById(id);
+  if (!existing) return;
 
-  if (data.initialStock !== undefined || data.soldQuantity !== undefined) {
-    // If admin adjusts initialStock or soldQuantity, recalculate
-    const existing = await getProductById(id);
-    if (existing) {
-      const newInitialStock = data.initialStock ?? existing.initialStock;
-      const newSoldQuantity = data.soldQuantity ?? existing.soldQuantity;
-      const newAvailable = Math.max(0, newInitialStock - newSoldQuantity);
-      updatePayload.initialStock = newInitialStock;
-      updatePayload.soldQuantity = newSoldQuantity;
-      updatePayload.availableStock = newAvailable;
-      updatePayload.stock = newAvailable; // sync backward-compat field
-    }
-  } else if (data.stock !== undefined && data.initialStock === undefined && data.soldQuantity === undefined) {
-    // Simple stock adjustment — treat as direct initialStock override for backward compat
-    // This preserves the old behavior where stock was set directly
-    const existing = await getProductById(id);
-    if (existing) {
-      const diff = data.stock - existing.availableStock;
-      const newInitialStock = existing.initialStock + diff;
-      updatePayload.initialStock = newInitialStock;
-      updatePayload.availableStock = data.stock;
-      updatePayload.stock = data.stock;
-      // soldQuantity stays the same
-    }
+  // Case 1: Admin explicitly sets soldQuantity (use it directly)
+  if (data.soldQuantity !== undefined) {
+    const newSold = Math.max(0, data.soldQuantity);
+    const newInitial = data.initialStock ?? existing.initialStock;
+    const newAvailable = Math.max(0, newInitial - newSold);
+    updatePayload.initialStock = newInitial;
+    updatePayload.soldQuantity = newSold;
+    updatePayload.availableStock = newAvailable;
+    updatePayload.stock = newAvailable;
+  }
+  // Case 2: Admin adjusts initialStock (preserves soldQuantity)
+  else if (data.initialStock !== undefined) {
+    const newInitial = Math.max(0, data.initialStock);
+    const newAvailable = Math.max(0, newInitial - existing.soldQuantity);
+    updatePayload.initialStock = newInitial;
+    updatePayload.soldQuantity = existing.soldQuantity;
+    updatePayload.availableStock = newAvailable;
+    updatePayload.stock = newAvailable;
+  }
+  // Case 3: Admin sets stock directly (additive — delta is added to total stock)
+  else if (data.stock !== undefined) {
+    const delta = data.stock - existing.availableStock;
+    // Positive delta = restock, negative = reduction
+    const newInitialStock = Math.max(existing.soldQuantity, existing.initialStock + delta);
+    const newAvailable = Math.max(0, newInitialStock - existing.soldQuantity);
+    updatePayload.initialStock = newInitialStock;
+    updatePayload.availableStock = newAvailable;
+    updatePayload.stock = newAvailable;
+    // soldQuantity remains UNCHANGED — NEVER modified by admin stock edits
   }
 
   await updateDoc(doc(db, COLLECTION, id), updatePayload);

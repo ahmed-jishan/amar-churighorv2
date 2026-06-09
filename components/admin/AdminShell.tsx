@@ -6,22 +6,11 @@ import Link from 'next/link';
 import { logoutAdmin } from '@/lib/firebase/auth';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Tag, Home, ChevronRight,
-  Layers, ImageIcon
+  Layers, ImageIcon, ShieldCheck
 } from 'lucide-react';
 
-const NAV = [
-  { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/admin/products', icon: Package, label: 'Products' },
-  { href: '/admin/categories', icon: Layers, label: 'Categories' },
-  { href: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
-  { href: '/admin/customers', icon: Users, label: 'Customers' },
-  { href: '/admin/content', icon: Tag, label: 'Content' },
-  { href: '/admin/hero', icon: ImageIcon, label: 'Hero' },
-  { href: '/admin/settings', icon: Settings, label: 'Settings' },
-];
-
 export default function AdminShell({ children }: { children: React.ReactNode }) {
-  const { user, admin, loading } = useAdmin();
+  const { user, admin, loading, isAdmin } = useAdmin();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -51,7 +40,16 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
-          {NAV.map(({ href, icon: Icon, label }) => {
+          {[
+            { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard', show: true },
+            { href: '/admin/products', icon: Package, label: 'Products', show: true },
+            { href: '/admin/categories', icon: Layers, label: 'Categories', show: true },
+            { href: '/admin/orders', icon: ShoppingCart, label: 'Orders', show: true },
+            { href: '/admin/customers', icon: Users, label: 'Customers', show: true },
+            { href: '/admin/content', icon: Tag, label: 'Content', show: true },
+            { href: '/admin/hero', icon: ImageIcon, label: 'Hero', show: true },
+            { href: '/admin/settings', icon: Settings, label: 'Settings', show: isAdmin },
+          ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (
               <Link key={href} href={href}

@@ -126,8 +126,8 @@ export default function AdminProductsPage() {
       };
 
       if (editing) {
-        // When editing, preserve soldQuantity — only update stock/initialStock
-        await updateProduct(editing.id, { ...productData, soldQuantity: undefined });
+        // When editing, only update stock/initialStock — soldQuantity is NEVER modified
+        await updateProduct(editing.id, { stock: stockValue });
         toast.success('Product updated!');
       } else {
         await createProduct(productData);

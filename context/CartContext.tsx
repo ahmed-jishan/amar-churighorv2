@@ -70,7 +70,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       top: `${rect.top}px`, left: `${rect.left}px`, transition: 'none',
     });
     document.body.appendChild(clone);
-    const cartEl = document.querySelector('#cart-target');
+    const cartEl = document.querySelector('#navbar-cart-icon');
     const cartRect = cartEl?.getBoundingClientRect() ?? { top: 16, left: window.innerWidth - 60 };
     clone.animate([
       { transform: 'scale(1)', top: `${rect.top}px`, left: `${rect.left}px`, opacity: 1 },

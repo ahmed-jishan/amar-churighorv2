@@ -64,10 +64,11 @@ export default function Navbar() {
               />
             </form>
 
-            <button id="cart-target" onClick={openCart} className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition">
+            <button id="navbar-cart-icon" onClick={openCart} className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition">
               <ShoppingBag className="w-5 h-5" />
               {hydrated && totalItems > 0 && (
                 <motion.span
+                  id="navbar-cart-badge"
                   initial={{ scale: 0 }} animate={{ scale: 1 }}
                   className="absolute -top-1 -right-1 bg-[#d7ffa4] text-[#1a1a1a] text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold"
                 >

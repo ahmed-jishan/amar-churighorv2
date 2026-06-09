@@ -37,11 +37,17 @@ service cloud.firestore {
       allow read, update, delete: if isAdminOrSuper();
     }
 
-    // KEY FIX: any signed-in user can read their OWN admin doc
+    // ── ADMINS COLLECTION ──────────────────────────────
+    // Security rules:
+    //   - Any signed-in user can read their OWN admin doc (for login/status check)
+    //   - Only super_admin can READ all admin docs (admin list page)
+    //   - Only super_admin can CREATE/UPDATE/DELETE admin docs
+    //   - Suspended users are blocked by isAdminUser()/isSuperAdmin() checks
     match /admins/{adminId} {
       allow read: if isSignedIn() && request.auth.uid == adminId;
-      allow read: if isSuperAdmin();
-      allow create, update, delete: if isSuperAdmin();
+      allow list: if isSuperAdmin();
+      allow create: if isSuperAdmin();
+      allow update, delete: if isSuperAdmin();
     }
 
     match /hero_slides/{id} {

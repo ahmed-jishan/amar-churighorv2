@@ -6,6 +6,7 @@ import { useCart } from '@/context/CartContext';
 import { motion } from 'framer-motion';
 import NeoButton from './NeoButton';
 import { formatPrice } from '@/lib/utils';
+import { triggerCartAnimation } from '@/lib/cartAnimation';
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
@@ -13,10 +14,15 @@ export default function ProductCard({ product }: { product: Product }) {
   const handleAdd = (e: React.MouseEvent<HTMLButtonElement>) => {
     const img = e.currentTarget.closest('.group')?.querySelector('img') as HTMLElement | null;
     addToCart(product, img ?? undefined);
+    const cartEl = document.getElementById('navbar-cart-icon');
+    if (cartEl) {
+      triggerCartAnimation(e.currentTarget, cartEl);
+    }
   };
 
   const effectivePrice = product.discountPrice ?? product.price;
   const hasDiscount = product.discountPrice && product.discountPrice < product.price;
+  const imageSrc = product.featuredImage || product.images[0] || '/placeholder.png';
 
   return (
     <motion.div
@@ -29,7 +35,7 @@ export default function ProductCard({ product }: { product: Product }) {
                  hover:shadow-2xl hover:shadow-green-500/10 transition-all duration-500 flex flex-col
                  border border-[#1f3334]"
     >
-      <Link href={`/products/${product.slug}`} className="block overflow-hidden bg-gray-100 dark:bg-gray-800 relative">
+      <Link href={`/products/${product.slug}`} className="block overflow-hidden bg-gray-100 dark:bg-gray-800 relative aspect-square">
         {product.isNewArrival && (
           <span className="absolute top-3 left-3 z-10 text-xs bg-[#d7ffa4] text-[#1a1a1a] font-bold px-2 py-0.5 rounded-full border border-[#1a1a1a]">New</span>
         )}
@@ -39,11 +45,12 @@ export default function ProductCard({ product }: { product: Product }) {
           </span>
         )}
         <Image
-          src={product.featuredImage || product.images[0] || '/placeholder.png'}
+          src={imageSrc}
           alt={product.name}
           width={400}
           height={400}
-          className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-700"
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+          style={{ aspectRatio: '1/1' }}
         />
       </Link>
       <div className="p-5 flex-1 flex flex-col">

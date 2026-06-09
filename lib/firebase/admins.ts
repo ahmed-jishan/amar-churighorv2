@@ -1,24 +1,27 @@
-import { db, auth } from './config';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { db } from './config';
+import { collection, getDocs } from 'firebase/firestore';
 import { Admin } from '@/types';
 
+/**
+ * Fetch ALL admins from Firestore `admins` collection.
+ * Normalizes field names: supports both `name` and `displayName` for display.
+ * WARNING: Firestore rules must allow the caller (super_admin) to read all docs.
+ *
+ * This file intentionally does NOT contain any auth-touching code
+ * (no createUserWithEmailAndPassword, signIn, signOut, etc.).
+ * Admin creation/deletion/update MUST go through Cloud Functions (services/adminService.ts).
+ */
 export async function getAllAdmins(): Promise<Admin[]> {
   const snap = await getDocs(collection(db, 'admins'));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Admin));
-}
-
-export async function createAdmin(email: string, password: string, name: string): Promise<void> {
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
-  await setDoc(doc(db, 'admins', cred.user.uid), {
-    email, name, role: 'admin', isSuspended: false, createdAt: new Date().toISOString(),
+  return snap.docs.map(d => {
+    const data = d.data();
+    return {
+      id: d.id,
+      name: data.displayName || data.name || data.email?.split('@')[0] || 'Admin',
+      email: data.email || '',
+      role: data.role || 'admin',
+      isSuspended: data.isSuspended ?? false,
+      createdAt: data.createdAt || '',
+    } as Admin;
   });
-}
-
-export async function suspendAdmin(id: string, suspended: boolean): Promise<void> {
-  await updateDoc(doc(db, 'admins', id), { isSuspended: suspended });
-}
-
-export async function removeAdmin(id: string): Promise<void> {
-  await deleteDoc(doc(db, 'admins', id));
 }
