@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { logoutAdmin } from '@/lib/firebase/auth';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Tag, Home, ChevronRight,
-  Layers, ImageIcon, ShieldCheck
+  Layers, ImageIcon, ShieldCheck, FileText
 } from 'lucide-react';
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
@@ -48,6 +48,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             { href: '/admin/customers', icon: Users, label: 'Customers', show: true },
             { href: '/admin/content', icon: Tag, label: 'Content', show: true },
             { href: '/admin/hero', icon: ImageIcon, label: 'Hero', show: true },
+            { href: '/admin/footer', icon: FileText, label: 'Footer', show: true },
             { href: '/admin/settings', icon: Settings, label: 'Settings', show: isAdmin },
           ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
             const active = pathname === href || pathname.startsWith(href + '/');

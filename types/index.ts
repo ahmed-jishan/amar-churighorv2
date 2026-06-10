@@ -177,3 +177,25 @@ export interface WhyChooseUsItem {
   description: string;
   icon: string;
 }
+
+// ──────────────────────────────────────────────────────────────
+// Footer Section Manager Types
+// ──────────────────────────────────────────────────────────────
+
+/** A single link within a footer section */
+export interface FooterLink {
+  label: string;
+  url: string;
+  open_in_new_tab: boolean;
+}
+
+/** A footer section (column) displayed on the public site */
+export interface FooterSection {
+  id: string;
+  title: string;
+  links: FooterLink[];
+  is_visible: boolean;
+  sort_order: number;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -5,7 +5,8 @@ import { Admin } from '@/types';
 /**
  * Fetch ALL admins from Firestore `admins` collection.
  * Normalizes field names: supports both `name` and `displayName` for display.
- * WARNING: Firestore rules must allow the caller (super_admin) to read all docs.
+ * WARNING: Firestore rules allow any active (non-suspended) admin to list docs,
+ * but only super_admin can create/update/delete.
  *
  * This file intentionally does NOT contain any auth-touching code
  * (no createUserWithEmailAndPassword, signIn, signOut, etc.).

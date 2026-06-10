@@ -1,74 +1,138 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // =====================================================
+    // CORE HELPERS
+    // =====================================================
 
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isAdminUser() {
+    function userDoc() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function userExists() {
       return isSignedIn() &&
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.isSuspended == false;
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isSuspended() {
+      return userExists() &&
+        userDoc().data.isSuspended == true;
+    }
+
+    function getRole() {
+      return userExists() ? userDoc().data.role : null;
     }
 
     function isSuperAdmin() {
-      return isAdminUser() &&
-        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin';
+      return isSignedIn() &&
+        userExists() &&
+        !isSuspended() &&
+        getRole() == "super_admin";
     }
 
-    // Admins can read/write everything
-    function isAdminOrSuper() {
-      return isAdminUser() || isSuperAdmin();
+    function isAdmin() {
+      return isSignedIn() &&
+        userExists() &&
+        !isSuspended() &&
+        getRole() == "admin";
     }
+
+    function isAdminOrSuperAdmin() {
+      return isAdmin() || isSuperAdmin();
+    }
+
+    // =====================================================
+    // PRODUCTS
+    // =====================================================
 
     match /products/{productId} {
       allow read: if true;
-      allow write, delete: if isAdminOrSuper();
+      allow create, update, delete: if isAdminOrSuperAdmin();
     }
 
-    match /categories/{catId} {
+    // =====================================================
+    // CATEGORIES
+    // =====================================================
+
+    match /categories/{categoryId} {
       allow read: if true;
-      allow write, delete: if isAdminOrSuper();
+      allow create, update, delete: if isAdminOrSuperAdmin();
     }
+
+    // =====================================================
+    // ORDERS
+    // =====================================================
 
     match /orders/{orderId} {
       allow create: if true;
-      allow read, update, delete: if isAdminOrSuper();
+      allow read: if isAdminOrSuperAdmin();
+      allow update, delete: if isAdminOrSuperAdmin();
     }
 
-    // ── ADMINS COLLECTION ──────────────────────────────
-    // Security rules:
-    //   - Any signed-in user can read their OWN admin doc (for login/status check)
-    //   - Only super_admin can READ all admin docs (admin list page)
-    //   - Only super_admin can CREATE/UPDATE/DELETE admin docs
-    //   - Suspended users are blocked by isAdminUser()/isSuperAdmin() checks
+    // =====================================================
+    // HERO SLIDES
+    // =====================================================
+
+    match /hero_slides/{slideId} {
+      allow read: if true;
+      allow create, update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // FAQS
+    // =====================================================
+
+    match /faqs/{faqId} {
+      allow read: if true;
+      allow create, update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // REVIEWS
+    // =====================================================
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create, update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // SETTINGS (store config — accessible by any active admin)
+    // =====================================================
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow create, update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // ADMIN MANAGEMENT (CRITICAL)
+    //   - Any signed-in user can read their OWN admin doc
+    //   - Any active admin can LIST all (read-only view)
+    //   - ONLY super_admin can create/update/delete admins
+    // =====================================================
+
     match /admins/{adminId} {
       allow read: if isSignedIn() && request.auth.uid == adminId;
-      allow list: if isSuperAdmin();
+      allow read: if isSuperAdmin();
+      allow list: if isAdminOrSuperAdmin();
       allow create: if isSuperAdmin();
-      allow update, delete: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
     }
 
-    match /hero_slides/{id} {
-      allow read: if true;
-      allow write, delete: if isAdminOrSuper();
-    }
+    // =====================================================
+    // DEFAULT DENY (BEST PRACTICE)
+    // =====================================================
 
-    match /faqs/{id} {
-      allow read: if true;
-      allow write, delete: if isAdminOrSuper();
+    match /{document=**} {
+      allow read, write: if false;
     }
-
-    match /reviews/{id} {
-      allow read: if true;
-      allow write, delete: if isAdminOrSuper();
-    }
-
-    match /settings/{id} {
-      allow read: if true;
-      allow write, delete: if isAdminOrSuper();
-    }
-
   }
 }
