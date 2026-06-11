@@ -83,10 +83,10 @@ export default function Footer() {
   return (
     <footer className="bg-white dark:bg-[#030f10] border-t border-gray-200 dark:border-[#1f3334] mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
-        {/* Grid: brand column takes more space on mobile */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-          {/* Brand Column — always first, spans full width on mobile */}
-          <div className="sm:col-span-2 lg:col-span-1">
+        {/* Flex container: brand and sections side by side on desktop, stacked on mobile */}
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+          {/* Brand Column — separate div, always stays on the left */}
+          <div className="lg:w-72 shrink-0">
             <h3 className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-400 bg-clip-text text-transparent mb-3">
               Amar Churighor
             </h3>
@@ -95,29 +95,31 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Dynamic or Fallback Link Columns */}
-          {displaySections.map(section => (
-            <div key={section.id}>
-              <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-3 uppercase tracking-wide">
-                {section.title}
-              </h4>
-              <ul className="space-y-2.5">
-                {section.links.map((link, i) => (
-                  <li key={i}>
-                    <Link
-                      href={link.url}
-                      className="text-sm text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors duration-200"
-                      {...(link.openInNewTab
-                        ? { target: '_blank', rel: 'noopener noreferrer' }
-                        : {})}
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {/* Sections Grid — sits beside brand, supports up to 4 columns without wrapping below brand */}
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {displaySections.map(section => (
+              <div key={section.id}>
+                <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-3 uppercase tracking-wide">
+                  {section.title}
+                </h4>
+                <ul className="space-y-2.5">
+                  {section.links.map((link, i) => (
+                    <li key={i}>
+                      <Link
+                        href={link.url}
+                        className="text-sm text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors duration-200"
+                        {...(link.openInNewTab
+                          ? { target: '_blank', rel: 'noopener noreferrer' }
+                          : {})}
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Copyright */}
