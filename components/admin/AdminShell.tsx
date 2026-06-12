@@ -1,18 +1,19 @@
 'use client';
 import { useAdmin } from '@/context/AdminContext';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { logoutAdmin } from '@/lib/firebase/auth';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Tag, Home, ChevronRight,
-  Layers, ImageIcon, ShieldCheck, FileText
+  Layers, ImageIcon, ShieldCheck, FileText, MessageSquare, HelpCircle, Star, ChevronDown
 } from 'lucide-react';
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const { user, admin, loading, isAdmin } = useAdmin();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (!loading && !user && !pathname.includes('/admin/login')) {
@@ -30,6 +31,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   if (!user) return null;
 
+
   return (
     <div className="min-h-screen bg-[#030f10] flex">
       {/* Sidebar */}
@@ -39,17 +41,14 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           <p className="text-xs text-gray-500 mt-0.5">Admin Panel</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-admin">
+          {/* Main navigation */}
           {[
             { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard', show: true },
             { href: '/admin/products', icon: Package, label: 'Products', show: true },
             { href: '/admin/categories', icon: Layers, label: 'Categories', show: true },
             { href: '/admin/orders', icon: ShoppingCart, label: 'Orders', show: true },
             { href: '/admin/customers', icon: Users, label: 'Customers', show: true },
-            { href: '/admin/content', icon: Tag, label: 'Content', show: true },
-            { href: '/admin/hero', icon: ImageIcon, label: 'Hero', show: true },
-            { href: '/admin/footer', icon: FileText, label: 'Footer', show: true },
-            { href: '/admin/settings', icon: Settings, label: 'Settings', show: isAdmin },
           ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (
@@ -63,6 +62,65 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               </Link>
             );
           })}
+
+          {/* ── Content Management Section ── */}
+          <div className="pt-4 pb-1">
+            <div className="flex items-center gap-2 px-3 py-1">
+              <MessageSquare className="w-4 h-4 text-[#d7ffa4]" />
+              <span className="text-[10px] text-[#d7ffa4] uppercase tracking-wider font-semibold">Content Management</span>
+            </div>
+          </div>
+
+          {/* Content sub-items - use query param tab switching */}
+          {[
+            { href: '/admin/content?tab=reviews', icon: Star, label: 'Customer Reviews', tab: 'reviews' },
+            { href: '/admin/content?tab=review-settings', icon: Settings, label: 'Review Settings', tab: 'review-settings' },
+            { href: '/admin/content?tab=faqs', icon: HelpCircle, label: 'FAQs', tab: 'faqs' },
+          ].map(({ href, icon: Icon, label, tab }) => {
+            const currentTab = searchParams.get('tab');
+            const isActive = pathname === '/admin/content' && currentTab === tab;
+            return (
+              <Link key={href} href={href}
+                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all ml-2 ${
+                  isActive
+                    ? 'bg-[#d7ffa4]/10 text-[#d7ffa4] font-medium border border-[#d7ffa4]/20'
+                    : 'text-gray-500 hover:text-white hover:bg-[#0b2a2b]'
+                }`}>
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+              </Link>
+            );
+          })}
+
+          {/* Other standalone sections */}
+          {[
+            { href: '/admin/hero', icon: ImageIcon, label: 'Hero Slides', show: true },
+            { href: '/admin/footer', icon: FileText, label: 'Footer', show: true },
+          ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
+            const active = pathname === href || pathname.startsWith(href + '/');
+            return (
+              <Link key={href} href={href}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                  active ? 'bg-[#d7ffa4] text-[#1a1a1a] font-semibold' : 'text-gray-400 hover:text-white hover:bg-[#0b2a2b]'
+                }`}>
+                <Icon className="w-4 h-4" />
+                {label}
+                {active && <ChevronRight className="w-3 h-3 ml-auto" />}
+              </Link>
+            );
+          })}
+
+          {/* Settings */}
+          {isAdmin && (
+            <Link href="/admin/settings"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                pathname === '/admin/settings' ? 'bg-[#d7ffa4] text-[#1a1a1a] font-semibold' : 'text-gray-400 hover:text-white hover:bg-[#0b2a2b]'
+              }`}>
+              <ShieldCheck className="w-4 h-4" />
+              Settings
+              {pathname === '/admin/settings' && <ChevronRight className="w-3 h-3 ml-auto" />}
+            </Link>
+          )}
         </nav>
 
         <div className="p-4 border-t border-[#1f3334]">

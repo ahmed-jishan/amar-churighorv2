@@ -14,14 +14,25 @@ export async function getProducts(filters?: {
   isNewArrival?: boolean;
   isActive?: boolean;
 }): Promise<Product[]> {
-  let q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
-  if (filters?.category) q = query(q, where('category', '==', filters.category));
-  if (filters?.isFeatured !== undefined) q = query(q, where('isFeatured', '==', filters.isFeatured));
-  if (filters?.isBestSeller !== undefined) q = query(q, where('isBestSeller', '==', filters.isBestSeller));
-  if (filters?.isNewArrival !== undefined) q = query(q, where('isNewArrival', '==', filters.isNewArrival));
-  if (filters?.isActive !== undefined) q = query(q, where('isActive', '==', filters.isActive));
+  let constraints: any[] = [];
+
+  // Apply where filters first
+  if (filters?.category) constraints.push(where('category', '==', filters.category));
+  if (filters?.isFeatured !== undefined) constraints.push(where('isFeatured', '==', filters.isFeatured));
+  if (filters?.isBestSeller !== undefined) constraints.push(where('isBestSeller', '==', filters.isBestSeller));
+  if (filters?.isNewArrival !== undefined) constraints.push(where('isNewArrival', '==', filters.isNewArrival));
+  if (filters?.isActive !== undefined) constraints.push(where('isActive', '==', filters.isActive));
+
+  // Only apply orderBy in query when NO filters to avoid composite index requirements
+  // When filters exist, we sort client-side to prevent Firestore index errors
+  const hasFilters = Object.values(filters || {}).some(v => v !== undefined);
+  if (!hasFilters) {
+    constraints.push(orderBy('createdAt', 'desc'));
+  }
+
+  const q = query(collection(db, COLLECTION), ...constraints);
   const snap = await getDocs(q);
-  return snap.docs.map(d => {
+  let products = snap.docs.map(d => {
     const data = d.data();
     return {
       id: d.id,
@@ -32,6 +43,13 @@ export async function getProducts(filters?: {
       stock: data.availableStock ?? (data.initialStock ?? data.stock ?? 0) - (data.soldQuantity ?? 0),
     } as Product;
   });
+
+  // Client-side sort when query had no orderBy
+  if (hasFilters) {
+    products.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  return products;
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
@@ -124,7 +142,6 @@ export async function deleteProduct(id: string): Promise<void> {
 /**
  * Atomically deduct stock using Firestore transaction.
  * Returns true if successful, false if insufficient stock.
- * This is the concurrency-safe inventory deduction used at order placement.
  */
 export async function deductStockAtomic(
   productId: string,
@@ -151,7 +168,7 @@ export async function deductStockAtomic(
       transaction.update(ref, {
         availableStock: newAvailable,
         soldQuantity: newSold,
-        stock: newAvailable, // sync backward-compat field
+        stock: newAvailable,
         updatedAt: new Date().toISOString(),
       });
 
@@ -216,7 +233,6 @@ export async function adjustStock(
 
 /**
  * Increment stock by a delta (positive = restock, negative = manual reduction).
- * Ensures stock never goes negative.
  */
 export async function incrementStock(
   productId: string,

@@ -103,9 +103,74 @@ export interface Review {
   rating: number;
   comment: string;
   avatar?: string;
+  designation?: string;
+  location?: string;
   isActive: boolean;
+  displayOrder: number;
   createdAt: string;
+  updatedAt?: string;
 }
+
+export type ReviewAnimationType =
+  | 'horizontal-left'
+  | 'horizontal-right'
+  | 'infinite-marquee'
+  | 'smooth-continuous'
+  | 'floating-cards'
+  | 'carousel-slider'
+  | 'auto-sliding'
+  | 'staggered-cards'
+  | 'zig-zag'
+  | 'premium-luxury';
+
+export type ReviewAnimationSpeed = 'very-slow' | 'slow' | 'normal' | 'fast' | 'very-fast';
+
+export interface ReviewAnimationConfig {
+  enabled: boolean;
+  animationType: ReviewAnimationType;
+  speed: ReviewAnimationSpeed;
+  customSpeed?: number;
+  direction: 'left' | 'right';
+  pauseOnHover: boolean;
+  autoPlay: boolean;
+  loop: boolean;
+  mobileOptimized: boolean;
+  desktopOptimized: boolean;
+}
+
+export const DEFAULT_REVIEW_ANIMATION_CONFIG: ReviewAnimationConfig = {
+  enabled: true,
+  animationType: 'carousel-slider',
+  speed: 'normal',
+  customSpeed: 5,
+  direction: 'left',
+  pauseOnHover: true,
+  autoPlay: true,
+  loop: true,
+  mobileOptimized: true,
+  desktopOptimized: true,
+};
+
+export const REVIEW_ANIMATION_SPEEDS = {
+  'very-slow': { label: 'Very Slow', value: 15 },
+  'slow': { label: 'Slow', value: 10 },
+  'normal': { label: 'Normal', value: 5 },
+  'fast': { label: 'Fast', value: 3 },
+  'very-fast': { label: 'Very Fast', value: 2 },
+} as const;
+
+export const REVIEW_ANIMATION_TYPES: { value: ReviewAnimationType; label: string; description: string }[] = [
+  { value: 'horizontal-left', label: 'Horizontal Left → Right', description: 'Cards slide horizontally from left to right' },
+  { value: 'horizontal-right', label: 'Horizontal Right → Left', description: 'Cards slide horizontally from right to left' },
+  { value: 'infinite-marquee', label: 'Infinite Marquee', description: 'Continuous scrolling marquee effect' },
+  { value: 'smooth-continuous', label: 'Smooth Continuous Scroll', description: 'Smooth infinite scrolling cards' },
+  { value: 'floating-cards', label: 'Floating Cards', description: 'Cards gently float up and down' },
+  { value: 'carousel-slider', label: 'Carousel Slider', description: 'Standard carousel with navigation dots' },
+  { value: 'auto-sliding', label: 'Auto Sliding Testimonials', description: 'Auto-advancing testimonial cards' },
+  { value: 'staggered-cards', label: 'Staggered Moving Cards', description: 'Cards enter with staggered timing' },
+  { value: 'zig-zag', label: 'Zig-Zag Motion', description: 'Alternating zig-zag movement pattern' },
+  { value: 'premium-luxury', label: 'Premium Luxury Motion Style', description: 'Elegant luxury-style motion with scale and opacity' },
+];
 
 export interface Admin {
   id: string;
@@ -174,7 +239,9 @@ export interface FaqItem {
   question: string;
   answer: string;
   isActive: boolean;
-  sortOrder?: number;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface WhyChooseUsItem {

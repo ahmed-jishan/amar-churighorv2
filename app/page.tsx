@@ -16,8 +16,10 @@ import NeoButton from '@/components/ui/NeoButton';
 import Link from 'next/link';
 import { useProducts } from '@/hooks/useProducts';
 import { useHybridBestSellers } from '@/hooks/useHybridBestSellers';
-import { Star, Truck, Shield, RefreshCw, Headphones } from 'lucide-react';
+import { Truck, Shield, RefreshCw, Headphones } from 'lucide-react';
 import { motion } from 'framer-motion';
+import ReviewsSection from '@/components/ui/ReviewsSection';
+import FAQSection from '@/components/ui/FAQSection';
 
 function FeaturedProducts() {
   const { products, loading } = useProducts();
@@ -52,18 +54,6 @@ const WHY_US = [
   { icon: Headphones, title: '24/7 Support', desc: "We're here whenever you need us." },
 ];
 
-const REVIEWS = [
-  { name: 'Rina Begum', rating: 5, comment: 'Amazing quality! Will definitely order again.', location: 'Dhaka' },
-  { name: 'Karim Hossain', rating: 5, comment: 'Fast delivery and perfect packaging.', location: 'Chittagong' },
-  { name: 'Nusrat Jahan', rating: 5, comment: 'Exactly as described. Highly recommended!', location: 'Sylhet' },
-];
-
-const FAQS = [
-  { q: 'How long does delivery take?', a: 'Dhaka: 1-2 business days. Outside Dhaka: 3-5 business days.' },
-  { q: 'Do you accept cash on delivery?', a: 'Yes! We accept cash on delivery across Bangladesh.' },
-  { q: 'Can I return a product?', a: 'Yes, within 7 days if the product is unused and in original packaging.' },
-  { q: 'How do I track my order?', a: 'Visit our Track Order page and enter your order ID.' },
-];
 
 export default function HomePage() {
   return (
@@ -120,42 +110,26 @@ export default function HomePage() {
         </Suspense>
       </section>
 
-      {/* Reviews */}
+      {/* Reviews Section */}
       <section>
-        <h2 className="text-3xl font-bold text-center mb-2">Customer Reviews</h2>
-        <p className="text-center text-gray-500 mb-10">What our customers say</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {REVIEWS.map(r => (
-            <motion.div key={r.name} whileHover={{ y: -4 }}
-              className="p-6 bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] shadow-sm">
-              <div className="flex gap-1 mb-3">
-                {Array(r.rating).fill(0).map((_, i) => <Star key={i} className="w-4 h-4 fill-[#d7ffa4] text-[#d7ffa4]" />)}
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">"{r.comment}"</p>
-              <div>
-                <p className="font-semibold text-sm">{r.name}</p>
-                <p className="text-xs text-gray-400">{r.location}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        <Suspense fallback={
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-4 border-[#d7ffa4] border-t-transparent rounded-full animate-spin mx-auto" />
+          </div>
+        }>
+          <ReviewsSection />
+        </Suspense>
       </section>
 
-      {/* FAQ */}
+      {/* FAQ Section */}
       <section>
-        <h2 className="text-3xl font-bold text-center mb-2">Frequently Asked Questions</h2>
-        <p className="text-center text-gray-500 mb-10">Got questions? We have answers.</p>
-        <div className="max-w-2xl mx-auto space-y-4">
-          {FAQS.map((f, i) => (
-            <details key={i} className="group border border-[#1f3334] rounded-2xl p-5 cursor-pointer">
-              <summary className="font-semibold list-none flex justify-between items-center">
-                {f.q}
-                <span className="text-gray-400 group-open:rotate-180 transition-transform">↓</span>
-              </summary>
-              <p className="mt-3 text-gray-500 dark:text-gray-400 text-sm">{f.a}</p>
-            </details>
-          ))}
-        </div>
+        <Suspense fallback={
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-4 border-[#d7ffa4] border-t-transparent rounded-full animate-spin mx-auto" />
+          </div>
+        }>
+          <FAQSection />
+        </Suspense>
       </section>
 
       {/* Newsletter */}

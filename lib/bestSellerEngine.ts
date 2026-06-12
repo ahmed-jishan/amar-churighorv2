@@ -32,14 +32,18 @@ export function computeBestSellerScore(
  * Fetch all active products that have been manually flagged as Best Seller.
  */
 export async function getManualBestSellers(): Promise<Product[]> {
+  // Use single-filter query to avoid composite index errors
   const q = query(
     collection(db, PRODUCTS_COLLECTION),
     where('isBestSeller', '==', true),
-    where('isActive', '==', true),
-    orderBy('createdAt', 'desc')
   );
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
+  const products = snap.docs
+    .map(d => ({ id: d.id, ...d.data() } as Product))
+    .filter(p => p.isActive); // Client-side filter for isActive
+  // Client-side sort
+  products.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return products;
 }
 
 /**
@@ -50,22 +54,22 @@ export async function getAutoBestSellers(
   maxResults: number = DEFAULT_BEST_SELLER_CONFIG.autoBestSellerLimit,
   excludeIds: Set<string> = new Set()
 ): Promise<Product[]> {
+  // Use single-filter query to avoid composite index errors
   const q = query(
     collection(db, PRODUCTS_COLLECTION),
-    where('isActive', '==', true),
     where('bestSellerScore', '>', 0),
-    orderBy('bestSellerScore', 'desc'),
-    limit(maxResults + excludeIds.size)
   );
   const snap = await getDocs(q);
   const results: Product[] = [];
   for (const d of snap.docs) {
-    if (results.length >= maxResults) break;
-    if (!excludeIds.has(d.id)) {
-      results.push({ id: d.id, ...d.data() } as Product);
+    const product = { id: d.id, ...d.data() } as Product;
+    if (product.isActive && !excludeIds.has(d.id)) { // Client-side isActive filter
+      results.push(product);
     }
   }
-  return results;
+  // Client-side sort by bestSellerScore descending
+  results.sort((a, b) => (b.bestSellerScore ?? 0) - (a.bestSellerScore ?? 0));
+  return results.slice(0, maxResults);
 }
 
 /**
@@ -108,19 +112,16 @@ export async function getHybridBestSellers(
 
 /**
  * Aggregate sales statistics for a specific product from all delivered orders.
- * This recalculates totalOrders, totalUnitsSold, totalRevenue, and bestSellerScore
- * for a single product.
  */
 export async function recalculateProductSalesStats(
   productId: string,
   config: BestSellerConfig = DEFAULT_BEST_SELLER_CONFIG
 ): Promise<void> {
-  // Query all delivered orders that contain this product
+  // Query all delivered orders
   const ordersSnap = await getDocs(
     query(
       collection(db, ORDERS_COLLECTION),
       where('status', '==', 'delivered'),
-      orderBy('createdAt', 'desc')
     )
   );
 
@@ -188,8 +189,6 @@ export async function recalculateAllProductSalesStats(
 
 /**
  * Incrementally update a product's sales stats when an order is delivered.
- * This is the lightweight, real-time update path (avoid full recalculation).
- * Called by the order status update flow.
  */
 export async function incrementProductSalesStats(
   productId: string,
