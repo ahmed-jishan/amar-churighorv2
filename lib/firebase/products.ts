@@ -19,6 +19,7 @@ export async function getProducts(filters?: {
   if (filters?.isFeatured !== undefined) q = query(q, where('isFeatured', '==', filters.isFeatured));
   if (filters?.isBestSeller !== undefined) q = query(q, where('isBestSeller', '==', filters.isBestSeller));
   if (filters?.isNewArrival !== undefined) q = query(q, where('isNewArrival', '==', filters.isNewArrival));
+  if (filters?.isActive !== undefined) q = query(q, where('isActive', '==', filters.isActive));
   const snap = await getDocs(q);
   return snap.docs.map(d => {
     const data = d.data();

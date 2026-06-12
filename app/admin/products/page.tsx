@@ -126,8 +126,23 @@ export default function AdminProductsPage() {
       };
 
       if (editing) {
-        // When editing, only update stock/initialStock — soldQuantity is NEVER modified
-        await updateProduct(editing.id, { stock: stockValue });
+        await updateProduct(editing.id, {
+          name: form.name,
+          slug: form.slug || generateSlug(form.name),
+          category: form.category,
+          description: form.description,
+          price: Number(form.price),
+          discountPrice: form.discountPrice ? Number(form.discountPrice) : undefined,
+          sku: form.sku || `SKU-${Date.now()}`,
+          stock: stockValue,
+          tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+          images: uploaded,
+          featuredImage: uploaded[0] || '',
+          isFeatured: form.isFeatured,
+          isBestSeller: form.isBestSeller,
+          isNewArrival: false,
+          isActive: form.isActive,
+        });
         toast.success('Product updated!');
       } else {
         await createProduct(productData);

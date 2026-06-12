@@ -134,7 +134,7 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
 
           {product.availableStock === 0 ? (
             <div className="flex flex-wrap gap-3">
-              <span className="flex-1 px-6 py-2.5 rounded-xl font-semibold text-center bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed border-2 border-gray-300 dark:border-gray-600">
+              <span className="flex-1 px-6 py-2.5 rounded-[12px] font-semibold text-center bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed border-2 border-gray-300 dark:border-gray-600">
                 Out of Stock
               </span>
             </div>
@@ -146,7 +146,7 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
                   const img = document.querySelector('img[alt="' + product.name + '"]') as HTMLElement;
                   addToCart(product, img ?? undefined);
                 }}
-                className="flex-1 text-sm py-2.5
+                className="flex-1 text-sm py-2.5 rounded-[12px]
                   bg-[#d7ffa4] text-[#1a1a1a] border-[#1a1a1a] shadow-[3px_3px_0px_#1a1a1a]
                   dark:bg-[#0f2f30] dark:text-[#e6d3a3] dark:border-[#c9a96e] dark:shadow-[3px_3px_0px_#c9a96e]
                   hover:dark:-translate-y-0.5 hover:dark:bg-[#143a3b] hover:dark:text-white hover:dark:shadow-[5px_5px_0px_#c9a96e]"

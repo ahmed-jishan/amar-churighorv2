@@ -16,7 +16,7 @@ const NeoButton: React.FC<NeoButtonProps> = ({ text, icon, onClick, className = 
     onClick={onClick}
     disabled={disabled}
     className={cn(
-      'relative border-2 rounded-xl px-6 py-3 font-semibold text-base',
+      'relative border-2 rounded-[12px] px-6 py-3 font-semibold text-base',
       'transition-all duration-100 ease-in-out',
       'active:translate-y-1 active:shadow-[1px_1px_0px]',
       'hover:-translate-y-0.5 hover:shadow-[5px_5px_0px]',

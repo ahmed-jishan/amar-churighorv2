@@ -5,6 +5,10 @@ import {
 } from 'firebase/firestore';
 import { Order, OrderStatus } from '@/types';
 import { deductStockAtomic, replenishStock } from './products';
+import {
+  incrementProductSalesStats,
+  decrementProductSalesStats,
+} from '@/lib/bestSellerEngine';
 
 const COLLECTION = 'orders';
 
@@ -69,6 +73,24 @@ export async function updateOrderStatus(id: string, status: OrderStatus, note?: 
   if (!orderSnap.exists()) return;
   const order = orderSnap.data() as Order;
   const now = new Date().toISOString();
+
+  const previousStatus = order.status;
+
+  // ── Hybrid Best Seller: Update product sales stats on status transitions ──
+  // When status changes TO 'delivered': increment sales stats
+  if (previousStatus !== 'delivered' && status === 'delivered') {
+    for (const item of order.items) {
+      const itemRevenue = item.price * item.quantity;
+      await incrementProductSalesStats(item.productId, item.quantity, itemRevenue);
+    }
+  }
+  // When status changes FROM 'delivered' to something else (e.g. cancelled): decrement
+  else if (previousStatus === 'delivered' && status !== 'delivered') {
+    for (const item of order.items) {
+      const itemRevenue = item.price * item.quantity;
+      await decrementProductSalesStats(item.productId, item.quantity, itemRevenue);
+    }
+  }
 
   const historyEntry: { status: OrderStatus; timestamp: string; note?: string } = { status, timestamp: now };
   if (note !== undefined) {

@@ -319,7 +319,7 @@ export default function AdminFooterPage() {
               </button>
             </div>
 
-            <div className="p-5 space-y-5">
+            <div className="p-5 space-y-4">
               {/* Title */}
               <div>
                 <label className="block text-xs text-gray-500 uppercase mb-1">
@@ -347,10 +347,10 @@ export default function AdminFooterPage() {
 
                 <div className="space-y-3">
                   {form.links.map((link, index) => (
-                    <div
-                      key={index}
-                      className="bg-[#0b2a2b] rounded-xl border border-[#1f3334] p-3 space-y-2"
-                    >
+                      <div
+                        key={index}
+                        className="bg-[#0b2a2b] rounded-xl border border-[#1f3334] p-2.5 space-y-1.5"
+                      >
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-gray-600 uppercase">Link #{index + 1}</span>
                         {form.links.length > 1 && (
@@ -363,7 +363,7 @@ export default function AdminFooterPage() {
                         )}
                       </div>
 
-                      <div className="grid sm:grid-cols-2 gap-2">
+                      <div className="grid sm:grid-cols-2 gap-1.5">
                         <div>
                           <label className="block text-[10px] text-gray-600 uppercase mb-0.5">
                             Label

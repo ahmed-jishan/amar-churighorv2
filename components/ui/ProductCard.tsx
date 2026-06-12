@@ -72,13 +72,13 @@ export default function ProductCard({ product }: { product: Product }) {
           )}
         </div>
         {product.availableStock === 0 ? (
-          <span className="text-xs text-red-500 font-medium block text-center py-1.5 mt-auto border border-red-500/30 rounded-lg bg-red-500/5">Out of stock</span>
+          <span className="text-xs text-red-500 font-medium block text-center py-1.5 mt-auto border border-red-500/30 rounded-[10px] bg-red-500/5">Out of stock</span>
         ) : (
           <div className="flex gap-1.5 mt-auto">
             <NeoButton
               text="Add to Cart"
               onClick={handleAdd}
-              className="flex-1 text-[11px] py-1.5 leading-tight
+              className="flex-1 text-[11px] py-1.5 px-2 leading-tight rounded-[10px]
                 bg-[#d7ffa4] text-[#1a1a1a] border-[#1a1a1a] shadow-[2px_2px_0px_#1a1a1a]
                 dark:bg-[#0f2f30] dark:text-[#e6d3a3] dark:border-[#c9a96e] dark:shadow-[2px_2px_0px_#c9a96e]
                 hover:dark:-translate-y-0.5 hover:dark:bg-[#143a3b] hover:dark:text-white hover:dark:shadow-[3px_3px_0px_#c9a96e]"
@@ -86,7 +86,7 @@ export default function ProductCard({ product }: { product: Product }) {
             <Link href={`/products/${product.slug}`}>
               <NeoButton
                 text="View"
-                className="text-[11px] py-1.5 px-3 leading-tight
+                className="text-[11px] py-1.5 px-3 leading-tight rounded-[10px]
                   bg-white text-black border-black shadow-none hover:shadow-[2px_2px_0px_black]
                   dark:bg-[#0b2a2b] dark:text-[#e6d3a3] dark:border-[#c9a96e] dark:shadow-none
                   dark:hover:bg-[#0f3334] dark:hover:text-white dark:hover:shadow-[3px_3px_0px_#c9a96e]"

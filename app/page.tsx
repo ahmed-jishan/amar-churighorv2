@@ -15,12 +15,13 @@ import ProductSkeleton from '@/components/ui/ProductSkeleton';
 import NeoButton from '@/components/ui/NeoButton';
 import Link from 'next/link';
 import { useProducts } from '@/hooks/useProducts';
+import { useHybridBestSellers } from '@/hooks/useHybridBestSellers';
 import { Star, Truck, Shield, RefreshCw, Headphones } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 function FeaturedProducts() {
-  const { products, loading } = useProducts({ isFeatured: true, isActive: true });
-  const display = loading ? [] : products.slice(0, 3);
+  const { products, loading } = useProducts();
+  const display = loading ? [] : products.filter(p => p.isFeatured && p.isActive).slice(0, 3);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -33,13 +34,12 @@ function FeaturedProducts() {
 }
 
 function BestSellers() {
-  const { products, loading } = useProducts({ isBestSeller: true, isActive: true });
-  const display = loading ? [] : products.slice(0, 4);
+  const { products, loading } = useHybridBestSellers({ maxResults: 4 });
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {loading
         ? Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)
-        : display.map(p => <ProductCard key={p.id} product={p} />)
+        : products.map(p => <ProductCard key={p.id} product={p} />)
       }
     </div>
   );
