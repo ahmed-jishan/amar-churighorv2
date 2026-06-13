@@ -1,5 +1,5 @@
 'use client';
-import { use, useState, useEffect } from 'react';
+import { use, useState, useEffect, useCallback } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getProductBySlug } from '@/lib/firebase/products';
@@ -10,6 +10,27 @@ import { formatPrice } from '@/lib/utils';
 import NeoButton from '@/components/ui/NeoButton';
 import { motion } from 'framer-motion';
 import { Star, Package, ArrowLeft } from 'lucide-react';
+import { getVisitorId, getSessionId } from '@/lib/analytics/visitorId';
+
+// ─── Fire-and-forget product view tracking ────────────────
+function trackProductView(product: Product) {
+  if (typeof window === 'undefined') return;
+  const visitorId = getVisitorId();
+  const { sessionId } = getSessionId();
+  fetch('/api/track', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: 'productview',
+      visitorId,
+      sessionId,
+      productId: product.id,
+      productName: product.name,
+      productSlug: product.slug,
+    }),
+    keepalive: true,
+  }).catch(() => { /* silent */ });
+}
 
 export default function ProductDetailClient({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -22,7 +43,11 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
 
   useEffect(() => {
     getProductBySlug(slug).then(p => {
-      if (p) { setProduct(p); addItem(p); }
+      if (p) { 
+        setProduct(p); 
+        addItem(p); 
+        trackProductView(p);
+      }
       setLoading(false);
     });
   }, [slug]);

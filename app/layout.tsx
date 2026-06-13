@@ -4,6 +4,7 @@ import { CartProvider } from '@/context/CartContext';
 import './globals.css';
 import AnonymousIdentity from '@/components/AnonymousIdentity';
 import UserLayoutWrapper from '@/components/UserLayoutWrapper';
+import AnalyticsTrackerWrapper from '@/components/analytics/AnalyticsTrackerWrapper';
 import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.variable} font-sans antialiased min-h-screen flex flex-col`} suppressHydrationWarning>
         <CartProvider>
           <AnonymousIdentity />
+          <AnalyticsTrackerWrapper />
           <UserLayoutWrapper>{children}</UserLayoutWrapper>
           <Toaster position="bottom-right" />
         </CartProvider>

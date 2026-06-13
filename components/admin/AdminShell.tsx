@@ -7,7 +7,7 @@ import { logoutAdmin } from '@/lib/firebase/auth';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Tag, Home, ChevronRight,
   Layers, ImageIcon, ShieldCheck, FileText, MessageSquare, HelpCircle, Star, ChevronDown,
-  Menu, X
+  Menu, X, BarChart3, Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -71,6 +71,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           { href: '/admin/categories', icon: Layers, label: 'Categories', show: true },
           { href: '/admin/orders', icon: ShoppingCart, label: 'Orders', show: true },
           { href: '/admin/customers', icon: Users, label: 'Customers', show: true },
+          { href: '/admin/analytics', icon: BarChart3, label: 'Analytics', show: true },
         ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
           return (
@@ -211,6 +212,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             { href: '/admin/categories', icon: Layers, label: 'Categories', show: true },
             { href: '/admin/orders', icon: ShoppingCart, label: 'Orders', show: true },
             { href: '/admin/customers', icon: Users, label: 'Customers', show: true },
+            { href: '/admin/analytics', icon: BarChart3, label: 'Analytics', show: true },
           ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (

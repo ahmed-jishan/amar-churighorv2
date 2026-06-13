@@ -132,6 +132,38 @@ service cloud.firestore {
     }
 
     // =====================================================
+    // ANALYTICS COLLECTIONS
+    //   Write: any authenticated or unauthenticated user (tracking)
+    //   Read: admin only (dashboard)
+    //   IP addresses are masked at the application layer
+    // =====================================================
+
+    match /visitor_sessions/{docId} {
+      allow create: if true;
+      allow read, update, delete: if isAdminOrSuperAdmin();
+    }
+
+    match /page_views/{docId} {
+      allow create: if true;
+      allow read: if isAdminOrSuperAdmin();
+    }
+
+    match /product_views/{docId} {
+      allow create: if true;
+      allow read: if isAdminOrSuperAdmin();
+    }
+
+    match /analytics_daily/{docId} {
+      allow write: if true;
+      allow read: if isAdminOrSuperAdmin();
+    }
+
+    match /analytics_monthly/{docId} {
+      allow write: if true;
+      allow read: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
     // DEFAULT DENY (BEST PRACTICE)
     // =====================================================
 

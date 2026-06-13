@@ -50,6 +50,24 @@ export async function createOrder(data: Omit<Order, 'id' | 'orderId' | 'createdA
   return { orderId, trackingToken };
 }
 
+export async function getOrdersByEmail(email: string): Promise<Order[]> {
+  const q = query(
+    collection(db, 'orders'),
+    where('customer.email', '==', email),
+    limit(20)
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map(d => {
+      const data = d.data();
+      if (!data.customer?.email) {
+        data.customer = { ...data.customer, email: '' };
+      }
+      return { id: d.id, ...data } as Order;
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
 export async function getOrderByOrderId(orderId: string): Promise<Order | null> {
   const q = query(collection(db, COLLECTION), where('orderId', '==', orderId), limit(1));
   const snap = await getDocs(q);

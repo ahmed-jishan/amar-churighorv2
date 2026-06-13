@@ -94,13 +94,13 @@ function getEstimatedDelivery(currentStatus: OrderStatus): string {
 function TrackingSkeleton() {
   return (
     <div className="max-w-2xl mx-auto py-12 px-4 animate-pulse">
-      <div className="h-8 w-48 bg-[#1f3334] rounded mb-4" />
-      <div className="h-4 w-32 bg-[#1f3334] rounded mb-8" />
+      <div className="h-8 w-48 bg-gray-200 dark:bg-[#1f3334] rounded mb-4" />
+      <div className="h-4 w-32 bg-gray-200 dark:bg-[#1f3334] rounded mb-8" />
       <div className="space-y-4">
         {[1, 2, 3, 4, 5, 6].map(i => (
           <div key={i} className="flex items-center gap-4">
-            <div className="w-8 h-8 rounded-full bg-[#1f3334]" />
-            <div className="h-4 flex-1 bg-[#1f3334] rounded" />
+            <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-[#1f3334]" />
+            <div className="h-4 flex-1 bg-gray-200 dark:bg-[#1f3334] rounded" />
           </div>
         ))}
       </div>
@@ -121,10 +121,10 @@ function TrackingError() {
         animate={{ rotate: 0 }}
         transition={{ type: 'spring', stiffness: 100 }}
       >
-        <AlertCircle className="w-20 h-20 mx-auto mb-6 text-red-400" />
+        <AlertCircle className="w-20 h-20 mx-auto mb-6 text-red-500 dark:text-red-400" />
       </motion.div>
-      <h2 className="text-2xl font-bold mb-3">Order Not Found</h2>
-      <p className="text-gray-400 mb-6">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Order Not Found</h2>
+      <p className="text-gray-500 dark:text-gray-400 mb-6">
         We couldn't find an order with this tracking link. It may have expired or been removed.
         Tracking links are valid for 7 days after order placement.
       </p>
@@ -140,8 +140,7 @@ function TrackingError() {
           <NeoButton
             text="Contact Support"
             icon={<Package className="w-4 h-4" />}
-            className="bg-white text-black border-black shadow-none
-              dark:bg-transparent dark:text-gray-300 dark:border-[#1f3334]"
+            className="bg-white dark:bg-transparent text-gray-900 dark:text-gray-300 border-gray-300 dark:border-[#1f3334] shadow-[3px_3px_0px_#d1d5db] dark:shadow-none"
           />
         </Link>
       </div>
@@ -179,7 +178,7 @@ function TimelineStep({
               ? '#d7ffa4'
               : isCancelled && stepIndex === 0
               ? '#ef4444'
-              : '#1f3334',
+              : '#9ca3af', // gray-400 for light mode circle bg
           }}
           transition={isActive ? { repeat: Infinity, duration: 2 } : { duration: 0.3 }}
           className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
@@ -194,7 +193,7 @@ function TimelineStep({
               <Check className="w-4 h-4" />
             </motion.span>
           ) : (
-            <span className={isActive ? 'text-[#051a1b]' : 'text-gray-500'}>
+            <span className={isActive ? 'text-[#051a1b]' : 'text-white dark:text-gray-500'}>
               {STATUS_ICONS[status]}
             </span>
           )}
@@ -202,7 +201,7 @@ function TimelineStep({
         {!isLast && (
           <div
             className={`w-[2px] h-10 ${
-              isCompleted ? 'bg-green-600' : 'bg-[#1f3334]'
+              isCompleted ? 'bg-green-600' : 'bg-gray-300 dark:bg-[#1f3334]'
             }`}
           />
         )}
@@ -212,9 +211,9 @@ function TimelineStep({
         <p
           className={`text-sm font-medium ${
             isCompleted
-              ? 'text-green-400'
+              ? 'text-green-600 dark:text-green-400'
               : isActive
-              ? 'text-[#d7ffa4]'
+              ? 'text-green-600 dark:text-[#d7ffa4]'
               : 'text-gray-500'
           }`}
         >
@@ -307,21 +306,21 @@ export default function TrackOrderPage() {
       >
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Package className="w-6 h-6 text-[#d7ffa4]" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Package className="w-6 h-6 text-green-600 dark:text-[#d7ffa4]" />
               Track Order
             </h1>
-            <p className="font-mono text-sm text-gray-400 mt-1">
+            <p className="font-mono text-sm text-gray-500 dark:text-gray-400 mt-1">
               {order.orderId}
             </p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={handleCopyLink}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1f3334] text-sm hover:bg-[#2a4546] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-100 dark:bg-[#1f3334] text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-[#2a4546] transition-colors"
             >
               {copied ? (
-                <Check className="w-4 h-4 text-green-400" />
+                <Check className="w-4 h-4 text-green-500" />
               ) : (
                 <Copy className="w-4 h-4" />
               )}
@@ -329,7 +328,7 @@ export default function TrackOrderPage() {
             </button>
             <button
               onClick={fetchOrder}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1f3334] text-sm hover:bg-[#2a4546] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-100 dark:bg-[#1f3334] text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-[#2a4546] transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               Refresh
@@ -337,18 +336,18 @@ export default function TrackOrderPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-4 mt-4 text-sm text-gray-400">
+        <div className="flex flex-wrap gap-4 mt-4 text-sm text-gray-500 dark:text-gray-400">
           <span className="flex items-center gap-1">
             <Clock className="w-4 h-4" />
             {formatDate(order.createdAt)}
           </span>
           <span>
-            Total: <strong className="text-[#d7ffa4]">{formatPrice(order.total)}</strong>
+            Total: <strong className="text-green-600 dark:text-[#d7ffa4]">{formatPrice(order.total)}</strong>
           </span>
           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
             isCancelled
-              ? 'bg-red-900/40 text-red-400 border border-red-700'
-              : 'bg-green-900/40 text-green-400 border border-green-700'
+              ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700'
+              : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700'
           }`}>
             {STATUS_LABELS[order.status]}
           </span>
@@ -360,14 +359,14 @@ export default function TrackOrderPage() {
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-[#0b2a2b] border border-[#1f3334] rounded-2xl p-6 mb-6"
+        className="bg-white dark:bg-[#0b2a2b] border border-gray-200 dark:border-[#1f3334] rounded-2xl p-6 mb-6"
       >
         {isCancelled ? (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-full bg-red-500 dark:bg-red-600 flex items-center justify-center shrink-0">
               <span className="text-white text-sm">❌</span>
             </div>
-            <p className="text-red-400 font-medium">This order has been cancelled.</p>
+            <p className="text-red-700 dark:text-red-400 font-medium">This order has been cancelled.</p>
           </div>
         ) : (
           STATUS_ORDER.map((s, i) => (
@@ -387,9 +386,9 @@ export default function TrackOrderPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="bg-[#0b2a2b] border border-[#1f3334] rounded-2xl p-4 mb-6 text-sm"
+        className="bg-white dark:bg-[#0b2a2b] border border-gray-200 dark:border-[#1f3334] rounded-2xl p-4 mb-6 text-sm text-gray-700 dark:text-gray-300"
       >
-        <span className="text-gray-400">📬 </span>
+        <span className="text-gray-500 dark:text-gray-400">📬 </span>
         {getEstimatedDelivery(order.status)}
       </motion.div>
 
@@ -398,27 +397,27 @@ export default function TrackOrderPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-[#0b2a2b] border border-[#1f3334] rounded-2xl p-6 mb-6"
+        className="bg-white dark:bg-[#0b2a2b] border border-gray-200 dark:border-[#1f3334] rounded-2xl p-6 mb-6"
       >
-        <h3 className="font-bold mb-4 flex items-center gap-2">
+        <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <ShoppingBag className="w-4 h-4" />
           Order Items ({order.items.length})
         </h3>
         <div className="space-y-3">
           {order.items.map((item, i) => (
-            <div key={i} className="flex items-center gap-3 pb-3 border-b border-[#1f3334] last:border-0 last:pb-0">
+            <div key={i} className="flex items-center gap-3 pb-3 border-b border-gray-200 dark:border-[#1f3334] last:border-0 last:pb-0">
               {item.image && (
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-800 shrink-0">
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0">
                   <Image src={item.image} alt={item.name} width={48} height={48} className="object-cover" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{item.name}</p>
-                <p className="text-xs text-gray-400">×{item.quantity}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">×{item.quantity}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm">{formatPrice(item.price * item.quantity)}</p>
-                <p className="text-xs text-gray-500">{formatPrice(item.price)} each</p>
+                <p className="text-sm text-gray-900 dark:text-gray-100">{formatPrice(item.price * item.quantity)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-500">{formatPrice(item.price)} each</p>
               </div>
             </div>
           ))}
@@ -430,16 +429,16 @@ export default function TrackOrderPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-[#0b2a2b] border border-[#1f3334] rounded-2xl p-6 mb-6"
+        className="bg-white dark:bg-[#0b2a2b] border border-gray-200 dark:border-[#1f3334] rounded-2xl p-6 mb-6"
       >
-        <h3 className="font-bold mb-3 flex items-center gap-2">
+        <h3 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
           <MapPin className="w-4 h-4" />
           Delivery Location
         </h3>
-        <p className="text-sm text-gray-300">
+        <p className="text-sm text-gray-700 dark:text-gray-300">
           {order.customer.area}, {order.customer.district}
         </p>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
           Full address hidden for privacy
         </p>
       </motion.div>
@@ -450,11 +449,11 @@ export default function TrackOrderPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="bg-[#0b2a2b] border border-[#1f3334] rounded-2xl overflow-hidden"
+          className="bg-white dark:bg-[#0b2a2b] border border-gray-200 dark:border-[#1f3334] rounded-2xl overflow-hidden"
         >
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="w-full flex items-center justify-between p-4 text-sm font-medium hover:bg-[#1f3334] transition-colors"
+            className="w-full flex items-center justify-between p-4 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#1f3334] transition-colors"
           >
             <span>Status History ({order.statusHistory.length})</span>
             <motion.span
@@ -473,20 +472,20 @@ export default function TrackOrderPage() {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="border-t border-[#1f3334] divide-y divide-[#1f3334]">
+                <div className="border-t border-gray-200 dark:border-[#1f3334] divide-y divide-gray-200 dark:divide-[#1f3334]">
                   {[...order.statusHistory]
                     .reverse()
                     .map((entry, i) => (
                       <div key={i} className="p-4 text-sm">
                         <div className="flex items-center gap-2">
                           <span className="text-xs">{STATUS_ICONS[entry.status]}</span>
-                          <span className="font-medium capitalize">{entry.status}</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100 capitalize">{entry.status}</span>
                           <span className="text-xs text-gray-500 ml-auto">
                             {formatDate(entry.timestamp)}
                           </span>
                         </div>
                         {entry.note && (
-                          <p className="text-xs text-gray-400 mt-1 ml-6">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
                             {entry.note}
                           </p>
                         )}

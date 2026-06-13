@@ -62,16 +62,24 @@ export default function CheckoutPage() {
         status: 'pending',
       });
 
-      // Fire-and-forget email notification (non-blocking)
-      fetch('/api/notify-order', {
+      // Send detailed confirmation email (non-blocking — never fails the order)
+      fetch('/api/send-order-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId,
-          trackingToken,
-          email: data.email,
           customerName: data.fullName,
+          customerEmail: data.email,
+          items: cart.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.discountPrice ?? item.price,
+          })),
+          subtotal: totalPrice,
+          deliveryCharge,
           total: grandTotal,
+          district: data.district,
+          area: data.area,
         }),
       }).catch(() => {}); // Silently ignore — don't block the redirect
 
