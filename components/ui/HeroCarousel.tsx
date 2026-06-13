@@ -9,6 +9,39 @@ import { getHeroSlides, getHeroConfig } from '@/lib/firebase/content';
 
 const FALLBACK_IMAGE = '/placeholder.png';
 
+const FALLBACK_SLIDES = [
+  {
+    id: 'fallback-1',
+    title: 'Timeless Elegance',
+    subtitle: 'Discover our curated collection of premium jewelry',
+    image: '/placeholder.png',
+    buttonText: 'Shop Now',
+    buttonLink: '/products',
+    sortOrder: 0,
+    isActive: true,
+  },
+  {
+    id: 'fallback-2',
+    title: 'New Arrivals',
+    subtitle: 'Be the first to wear our latest designs',
+    image: '/placeholder.png',
+    buttonText: 'Explore',
+    buttonLink: '/products',
+    sortOrder: 1,
+    isActive: true,
+  },
+  {
+    id: 'fallback-3',
+    title: 'Special Offers',
+    subtitle: 'Exclusive discounts on premium collections',
+    image: '/placeholder.png',
+    buttonText: 'View Offers',
+    buttonLink: '/offers',
+    sortOrder: 2,
+    isActive: true,
+  },
+];
+
 const TRANSITION_VARIANTS: Record<HeroTransition, {
   enter: (d: number) => { x?: string; y?: string; scale?: number; opacity: number };
   center: { x?: number; y?: number; scale?: number; opacity: number };
@@ -86,6 +119,8 @@ export default function HeroCarousel() {
   const [current, setCurrent] = useState(0);
   const [dir, setDir] = useState(1);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
 
   useEffect(() => {
     Promise.all([
@@ -100,10 +135,26 @@ export default function HeroCarousel() {
           return true;
         })
         .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-      setSlides(processed.map((s, i) => safeSlide(s, i)));
+
+      // Use Firestore slides if available, otherwise use fallback
+      if (processed.length > 0) {
+        setSlides(processed.map((s, i) => safeSlide(s, i)));
+      } else {
+        setSlides(FALLBACK_SLIDES.map((s, i) => ({
+          ...safeSlide(s, i),
+          image: s.image,
+        })));
+      }
       setConfig(cfg);
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => {
+      // On error, use fallback slides
+      setSlides(FALLBACK_SLIDES.map((s, i) => ({
+        ...safeSlide(s, i),
+        image: s.image,
+      })));
+      setLoading(false);
+    });
   }, []);
 
   // Reset current index when slides change
@@ -143,6 +194,33 @@ export default function HeroCarousel() {
     }
   };
 
+  // ── Touch Swipe Handlers ──
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0].clientX;
+    pauseAutoplay();
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(diff) > minSwipeDistance && activeSlides.length > 1) {
+      if (diff > 0) {
+        // Swiped left → next
+        next();
+      } else {
+        // Swiped right → prev
+        prev();
+      }
+    }
+    resumeAutoplay();
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -171,9 +249,12 @@ export default function HeroCarousel() {
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-2xl shadow-xl border border-[#1f3334] h-[300px] sm:h-[400px] md:h-[520px]"
+      className="relative w-full overflow-hidden rounded-2xl shadow-xl border border-[#1f3334] h-[300px] sm:h-[400px] md:h-[520px] select-none"
       onMouseEnter={pauseAutoplay}
       onMouseLeave={resumeAutoplay}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <AnimatePresence initial={false} custom={dir} mode="wait">
         <motion.div
@@ -194,7 +275,7 @@ export default function HeroCarousel() {
           )}
 
           <Image
-            src={slide.image}
+            src={slide.image || FALLBACK_IMAGE}
             alt={slide.altText || slide.title || 'Hero banner'}
             fill
             className={`${bgFitClass} ${bgPosClass}`}

@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '@/lib/firebase/categories';
+import { uploadImage } from '@/lib/cloudinary';
 import { ProductCategory } from '@/types';
-import { Plus, Pencil, Trash2, X, GripVertical } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, GripVertical, Upload } from 'lucide-react';
 import NeoButton from '@/components/ui/NeoButton';
 import toast from 'react-hot-toast';
 
@@ -13,8 +14,9 @@ export default function AdminCategoriesPage() {
   const [editing, setEditing] = useState<ProductCategory | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    name: '', slug: '', icon: '', isActive: true, sortOrder: 0,
+    name: '', slug: '', icon: '', image: '', isActive: true, sortOrder: 0,
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -28,7 +30,7 @@ export default function AdminCategoriesPage() {
   }
 
   function resetForm() {
-    setForm({ name: '', slug: '', icon: '', isActive: true, sortOrder: 0 });
+    setForm({ name: '', slug: '', icon: '', image: '', isActive: true, sortOrder: 0 });
     setEditing(null);
   }
 
@@ -38,6 +40,7 @@ export default function AdminCategoriesPage() {
       name: cat.name,
       slug: cat.slug,
       icon: cat.icon || '',
+      image: cat.image || '',
       isActive: cat.isActive,
       sortOrder: cat.sortOrder,
     });
@@ -146,7 +149,7 @@ export default function AdminCategoriesPage() {
                 <th className="p-4 w-10"></th>
                 <th className="text-left p-4">Name</th>
                 <th className="text-left p-4">Slug</th>
-                <th className="text-left p-4">Icon</th>
+        <th className="text-left p-4">Image</th>
                 <th className="text-left p-4">Order</th>
                 <th className="text-left p-4">Status</th>
                 <th className="text-left p-4">Actions</th>
@@ -167,7 +170,13 @@ export default function AdminCategoriesPage() {
                   </td>
                   <td className="p-4 text-white font-medium">{cat.name}</td>
                   <td className="p-4 text-gray-400 font-mono text-xs">{cat.slug}</td>
-                  <td className="p-4 text-lg">{cat.icon || '—'}</td>
+                  <td className="p-4">
+                    {cat.image ? (
+                      <img src={cat.image} alt={cat.name} className="w-10 h-10 rounded-lg object-cover border border-[#1f3334]" />
+                    ) : (
+                      <span className="text-gray-500 text-xs">No image</span>
+                    )}
+                  </td>
                   <td className="p-4 text-gray-400 text-xs">{cat.sortOrder}</td>
                   <td className="p-4">
                     <button onClick={() => toggleActive(cat)}
@@ -213,9 +222,39 @@ export default function AdminCategoriesPage() {
                   className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm" />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 uppercase mb-1">Icon (emoji or URL)</label>
+                <label className="block text-xs text-gray-500 uppercase mb-1">Icon (emoji)</label>
                 <input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="💍"
                   className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm" />
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <label className="block text-xs text-gray-500 uppercase mb-1">Category Image</label>
+                {form.image ? (
+                  <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-[#1f3334] mb-2">
+                    <img src={form.image} alt="" className="w-full h-full object-cover" />
+                    <button onClick={() => setForm(f => ({ ...f, image: '' }))}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                      <X className="w-3.5 h-3.5 text-white" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="w-32 h-32 flex items-center justify-center border-2 border-dashed border-[#1f3334] rounded-xl cursor-pointer hover:border-green-500 transition mb-2">
+                    {uploadingImage ? <span className="text-xs text-green-400 animate-pulse">Uploading...</span> : <Upload className="w-6 h-6 text-gray-500" />}
+                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploadingImage(true);
+                      try {
+                        const url = await uploadImage(file);
+                        setForm(f => ({ ...f, image: url }));
+                        toast.success('Image uploaded to Cloudinary!');
+                      } catch { toast.error('Image upload failed'); }
+                      setUploadingImage(false);
+                    }} />
+                  </label>
+                )}
+                <p className="text-[10px] text-gray-500">Upload to Cloudinary. Recommended: 400x400px</p>
               </div>
               <div>
                 <label className="block text-xs text-gray-500 uppercase mb-1">Sort Order</label>

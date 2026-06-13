@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { getProductBySlug } from '@/lib/firebase/products';
 import { useCart } from '@/context/CartContext';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+import { addRecentlyViewed } from '@/lib/recentlyViewed';
 import { Product } from '@/types';
 import { formatPrice } from '@/lib/utils';
 import NeoButton from '@/components/ui/NeoButton';
@@ -45,7 +46,8 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
     getProductBySlug(slug).then(p => {
       if (p) { 
         setProduct(p); 
-        addItem(p); 
+        addItem(p);
+        addRecentlyViewed(p);
         trackProductView(p);
       }
       setLoading(false);

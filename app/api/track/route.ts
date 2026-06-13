@@ -1,65 +1,56 @@
 /**
- * Analytics Tracking API Route
- * 
- * Receives async tracking events from the client-side tracker.
- * All writes are fire-and-forget to avoid blocking the client.
- * IP addresses are masked for privacy.
+ * Analytics Tracking API Route — Server-side with Firebase Admin SDK
+ *
+ * Receives tracking events from AnalyticsTracker client component
+ * and writes directly to Firestore using Admin SDK.
+ * This avoids the client SDK being used server-side.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  trackSession,
-  trackPageView,
-  trackProductView,
-  touchSession,
-  endSession,
-} from '@/lib/analytics/service';
+import { getAdminDb } from '@/lib/firebase/adminConfig';
+import { FieldValue } from 'firebase-admin/firestore';
 
-// ─── Request body types ────────────────────────────────────
+const COLLECTIONS = {
+  visitorSessions: 'visitor_sessions',
+  pageViews: 'page_views',
+  dailyAnalytics: 'analytics_daily',
+  monthlyAnalytics: 'analytics_monthly',
+} as const;
 
-interface TrackSessionBody {
-  type: 'session';
-  visitorId: string;
-  sessionId: string;
-  deviceType: string;
-  browser: string;
-  os: string;
-  landingPage: string;
-  referralSource: string;
-  visitCount: number;
+// ─── Helpers ─────────────────────────────────────────────────
+
+function nowISO(): string {
+  return new Date().toISOString();
 }
 
-interface TrackPageViewBody {
-  type: 'pageview';
-  visitorId: string;
-  sessionId: string;
-  pageUrl: string;
-  route: string;
-  pageTitle?: string;
+function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-interface TrackProductViewBody {
-  type: 'productview';
-  visitorId: string;
-  sessionId: string;
-  productId: string;
-  productName: string;
-  productSlug?: string;
+function monthStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-interface TrackHeartbeatBody {
-  type: 'heartbeat';
-  sessionId: string;
-  currentPage: string;
-}
+async function incrementCounters(fields: string[]) {
+  const db = getAdminDb();
+  const dateId = todayStr();
+  const monthId = monthStr();
 
-interface TrackEndSessionBody {
-  type: 'endsession';
-  sessionId: string;
-  exitPage: string;
-}
+  const dailyUpdate: Record<string, unknown> = { date: dateId, updatedAt: nowISO() };
+  const monthlyUpdate: Record<string, unknown> = { month: monthId, updatedAt: nowISO() };
 
-type TrackBody = TrackSessionBody | TrackPageViewBody | TrackProductViewBody | TrackHeartbeatBody | TrackEndSessionBody;
+  fields.forEach((f) => {
+    dailyUpdate[f] = FieldValue.increment(1);
+    monthlyUpdate[f] = FieldValue.increment(1);
+  });
+
+  await Promise.all([
+    db.collection(COLLECTIONS.dailyAnalytics).doc(dateId).set(dailyUpdate, { merge: true }),
+    db.collection(COLLECTIONS.monthlyAnalytics).doc(monthId).set(monthlyUpdate, { merge: true }),
+  ]);
+}
 
 // ─── Helper: Get client IP ─────────────────────────────────
 
@@ -88,90 +79,122 @@ function maskIP(ip: string): string {
 
 // ─── POST /api/track ───────────────────────────────────────
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body: TrackBody = await request.json();
-    const clientIP = maskIP(getClientIP(request));
+    const db = getAdminDb();
+    const body = await req.json();
+    const { type } = body;
+    const clientIP = maskIP(getClientIP(req));
 
-    switch (body.type) {
+    switch (type) {
       case 'session': {
-        const data = body as TrackSessionBody;
-        // Fire and forget — do not await
-        trackSession({
-          visitorId: data.visitorId,
-          sessionId: data.sessionId,
+        const now = nowISO();
+        await db.collection(COLLECTIONS.visitorSessions).add({
+          visitorId: body.visitorId ?? 'unknown',
+          sessionId: body.sessionId ?? 'unknown',
           ip: clientIP,
-          deviceType: data.deviceType as any,
-          browser: data.browser as any,
-          os: data.os as any,
-          sessionStart: new Date().toISOString(),
-          lastActivity: new Date().toISOString(),
-          landingPage: data.landingPage,
-          referralSource: data.referralSource,
-          visitCount: data.visitCount,
+          deviceType: body.deviceType ?? 'desktop',
+          browser: body.browser ?? 'unknown',
+          os: body.os ?? 'unknown',
+          sessionStart: now,
+          lastActivity: now,
+          landingPage: body.landingPage ?? '/',
+          referralSource: body.referralSource ?? 'direct',
+          visitCount: body.visitCount ?? 1,
           isActive: true,
-        }).catch(() => {});
+          createdAt: now,
+        });
+        await incrementCounters(['uniqueVisitors']);
         break;
       }
 
       case 'pageview': {
-        const data = body as TrackPageViewBody;
-        trackPageView({
-          visitorId: data.visitorId,
-          sessionId: data.sessionId,
-          pageUrl: data.pageUrl,
-          route: data.route,
-          pageTitle: data.pageTitle,
-          timestamp: new Date().toISOString(),
-        }).catch(() => {});
+        const now = nowISO();
+        await db.collection(COLLECTIONS.pageViews).add({
+          visitorId: body.visitorId ?? 'unknown',
+          sessionId: body.sessionId ?? 'unknown',
+          pageUrl: body.pageUrl ?? '/',
+          route: body.route ?? '/',
+          pageTitle: body.pageTitle ?? '',
+          timestamp: now,
+        });
+        await incrementCounters(['pageViews']);
         break;
       }
 
       case 'productview': {
-        const data = body as TrackProductViewBody;
-        trackProductView({
-          visitorId: data.visitorId,
-          sessionId: data.sessionId,
-          productId: data.productId,
-          productName: data.productName,
-          productSlug: data.productSlug,
-          timestamp: new Date().toISOString(),
-        }).catch(() => {});
+        const now = nowISO();
+        await db.collection('product_views').add({
+          visitorId: body.visitorId ?? 'unknown',
+          sessionId: body.sessionId ?? 'unknown',
+          productId: body.productId ?? '',
+          productName: body.productName ?? 'Unknown',
+          productSlug: body.productSlug ?? '',
+          timestamp: now,
+        });
+        await incrementCounters(['productViews']);
         break;
       }
 
       case 'heartbeat': {
-        const data = body as TrackHeartbeatBody;
-        touchSession(data.sessionId, data.currentPage).catch(() => {});
+        if (!body.sessionId) break;
+        const snap = await db
+          .collection(COLLECTIONS.visitorSessions)
+          .where('sessionId', '==', body.sessionId)
+          .limit(1)
+          .get();
+        if (!snap.empty) {
+          await snap.docs[0].ref.set(
+            { lastActivity: nowISO(), exitPage: body.currentPage ?? '/' },
+            { merge: true }
+          );
+        }
         break;
       }
 
       case 'endsession': {
-        const data = body as TrackEndSessionBody;
-        endSession(data.sessionId, data.exitPage).catch(() => {});
+        if (!body.sessionId) break;
+        const snap = await db
+          .collection(COLLECTIONS.visitorSessions)
+          .where('sessionId', '==', body.sessionId)
+          .limit(1)
+          .get();
+        if (!snap.empty) {
+          const data = snap.docs[0].data();
+          const duration = data.sessionStart
+            ? Math.floor((Date.now() - new Date(data.sessionStart).getTime()) / 1000)
+            : 0;
+          await snap.docs[0].ref.set(
+            { exitPage: body.exitPage ?? '/', duration, isActive: false, lastActivity: nowISO() },
+            { merge: true }
+          );
+        }
         break;
       }
 
       default:
-        return NextResponse.json({ success: false, error: 'Unknown event type' }, { status: 400 });
+        return NextResponse.json({ error: 'Unknown event type' }, { status: 400 });
     }
 
     // Always return success — tracking should never fail visible UX
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('[Analytics Track] Error:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+  } catch (err) {
+    console.error('[/api/track]', err);
+    return NextResponse.json({ success: false, error: String(err) }, { status: 500 });
   }
 }
 
 // ─── CORS Preflight ────────────────────────────────────────
 
 export async function OPTIONS() {
-  return NextResponse.json({}, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+  return NextResponse.json(
+    {},
+    {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+    }
+  );
 }

@@ -48,6 +48,8 @@ export interface ProductCategory {
   name: string;
   slug: string;
   icon?: string;
+  image?: string;
+  productCount?: number;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
@@ -118,6 +120,9 @@ export interface Review {
   avatar?: string;
   designation?: string;
   location?: string;
+  isVerified?: boolean;
+  productId?: string;
+  helpfulCount?: number;
   isActive: boolean;
   displayOrder: number;
   createdAt: string;
@@ -251,6 +256,7 @@ export interface FaqItem {
   id: string;
   question: string;
   answer: string;
+  category?: string;
   isActive: boolean;
   sortOrder: number;
   createdAt?: string;

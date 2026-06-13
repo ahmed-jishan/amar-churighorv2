@@ -1,3 +1,233 @@
+# rules_version = '2';
+
+# service cloud.firestore {
+#   match /databases/{database}/documents {
+
+#     // =====================================================
+#     // CORE HELPERS
+#     // =====================================================
+
+#     function isSignedIn() {
+#       return request.auth != null;
+#     }
+
+#     function userDoc() {
+#       return get(/databases/$(database)/documents/admins/$(request.auth.uid));
+#     }
+
+#     function userExists() {
+#       return isSignedIn() &&
+#         exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+#     }
+
+#     function isSuspended() {
+#       return userExists() &&
+#         userDoc().data.isSuspended == true;
+#     }
+
+#     function getRole() {
+#       return userExists() ? userDoc().data.role : null;
+#     }
+
+#     function isSuperAdmin() {
+#       return isSignedIn() &&
+#         userExists() &&
+#         !isSuspended() &&
+#         getRole() == "super_admin";
+#     }
+
+#     function isAdmin() {
+#       return isSignedIn() &&
+#         userExists() &&
+#         !isSuspended() &&
+#         getRole() == "admin";
+#     }
+
+#     function isAdminOrSuperAdmin() {
+#       return isAdmin() || isSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // PRODUCTS
+#     // =====================================================
+
+#     match /products/{productId} {
+#       allow read: if true;
+#       allow create, update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // CATEGORIES
+#     // =====================================================
+
+#     match /categories/{categoryId} {
+#       allow read: if true;
+#       allow create, update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // ORDERS
+#     // =====================================================
+
+#     match /orders/{orderId} {
+#       allow create: if true;
+#       allow read: if isAdminOrSuperAdmin() || (
+#         request.query.trackingToken != null &&
+#         resource.data.trackingToken == request.query.trackingToken
+#       );
+#       allow update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // HERO SLIDES
+#     // =====================================================
+
+#     match /hero_slides/{slideId} {
+#       allow read: if true;
+#       allow create, update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // FAQS
+#     // =====================================================
+
+#     match /faqs/{faqId} {
+#       allow read: if true;
+#       allow create, update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // REVIEWS
+#     // =====================================================
+
+#     match /reviews/{reviewId} {
+#       allow read: if true;
+#       allow create, update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // SECTION CONFIG (shared config for all homepage sections)
+#     // =====================================================
+
+#     match /section_config/{docId} {
+#       allow read: if true;
+#       allow create, update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // TRUST BAR
+#     // =====================================================
+
+#     match /trust_bar/{itemId} {
+#       allow read: if true;
+#       allow create, update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // FLASH SALE
+#     // =====================================================
+
+#     match /flash_sale/{saleId} {
+#       allow read: if true;
+#       allow create, update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // UGC GALLERY
+#     // =====================================================
+
+#     match /ugc_gallery/{itemId} {
+#       allow read: if true;
+#       allow create, update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // WHY CHOOSE US
+#     // =====================================================
+
+#     match /why_choose_us/{itemId} {
+#       allow read: if true;
+#       allow create, update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // NEWSLETTER SUBSCRIBERS
+#     //   Public CREATE (anyone can subscribe)
+#     //   Admin READ/WRITE/DELETE
+#     // =====================================================
+
+#     match /newsletter_subscribers/{subId} {
+#       allow create: if true;
+#       allow read, update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // SETTINGS (store config — accessible by any active admin)
+#     // =====================================================
+
+#     match /settings/{settingId} {
+#       allow read: if true;
+#       allow create, update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // ADMIN MANAGEMENT (CRITICAL)
+#     //   - Any signed-in user can read their OWN admin doc
+#     //   - Any active admin can LIST all (read-only view)
+#     //   - ONLY super_admin can create/update/delete admins
+#     // =====================================================
+
+#     match /admins/{adminId} {
+#       allow read: if isSignedIn() && request.auth.uid == adminId;
+#       allow read: if isSuperAdmin();
+#       allow list: if isAdminOrSuperAdmin();
+#       allow create: if isSuperAdmin();
+#       allow update: if isSuperAdmin();
+#       allow delete: if isSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // ANALYTICS COLLECTIONS
+#     //   Write: any authenticated or unauthenticated user (tracking)
+#     //   Read: admin only (dashboard)
+#     //   IP addresses are masked at the application layer
+#     // =====================================================
+
+#     match /visitor_sessions/{docId} {
+#       allow create: if true;
+#       allow read, update, delete: if isAdminOrSuperAdmin();
+#     }
+
+#     match /page_views/{docId} {
+#       allow create: if true;
+#       allow read: if isAdminOrSuperAdmin();
+#     }
+
+#     match /product_views/{docId} {
+#       allow create: if true;
+#       allow read: if isAdminOrSuperAdmin();
+#     }
+
+#     match /analytics_daily/{docId} {
+#       allow write: if true;
+#       allow read: if isAdminOrSuperAdmin();
+#     }
+
+#     match /analytics_monthly/{docId} {
+#       allow write: if true;
+#       allow read: if isAdminOrSuperAdmin();
+#     }
+
+#     // =====================================================
+#     // DEFAULT DENY (BEST PRACTICE)
+#     // =====================================================
+
+#     match /{document=**} {
+#       allow read, write: if false;
+#     }
+#   }
+# }
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -72,7 +302,6 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow create: if true;
       allow read: if isAdminOrSuperAdmin() || (
-        // Token-gated public read for order tracking
         request.query.trackingToken != null &&
         resource.data.trackingToken == request.query.trackingToken
       );
@@ -107,7 +336,7 @@ service cloud.firestore {
     }
 
     // =====================================================
-    // SETTINGS (store config — accessible by any active admin)
+    // SETTINGS
     // =====================================================
 
     match /settings/{settingId} {
@@ -116,26 +345,20 @@ service cloud.firestore {
     }
 
     // =====================================================
-    // ADMIN MANAGEMENT (CRITICAL)
-    //   - Any signed-in user can read their OWN admin doc
-    //   - Any active admin can LIST all (read-only view)
-    //   - ONLY super_admin can create/update/delete admins
+    // ADMIN MANAGEMENT
     // =====================================================
 
     match /admins/{adminId} {
+      // Any signed-in user reads their OWN doc (for role check on login)
       allow read: if isSignedIn() && request.auth.uid == adminId;
-      allow read: if isSuperAdmin();
-      allow list: if isAdminOrSuperAdmin();
-      allow create: if isSuperAdmin();
-      allow update: if isSuperAdmin();
-      allow delete: if isSuperAdmin();
+      // Super admin can read/list/write all admin docs
+      allow read, list: if isSuperAdmin();
+      allow create, update, delete: if isSuperAdmin();
     }
 
     // =====================================================
-    // ANALYTICS COLLECTIONS
-    //   Write: any authenticated or unauthenticated user (tracking)
-    //   Read: admin only (dashboard)
-    //   IP addresses are masked at the application layer
+    // ANALYTICS — FIX: separate write into create+update+delete
+    // Public can CREATE (tracking). Admin can do everything.
     // =====================================================
 
     match /visitor_sessions/{docId} {
@@ -145,26 +368,28 @@ service cloud.firestore {
 
     match /page_views/{docId} {
       allow create: if true;
-      allow read: if isAdminOrSuperAdmin();
+      allow read, update, delete: if isAdminOrSuperAdmin();
     }
 
     match /product_views/{docId} {
       allow create: if true;
-      allow read: if isAdminOrSuperAdmin();
+      allow read, update, delete: if isAdminOrSuperAdmin();
     }
 
+    // FIX: "allow write" was missing read for admin on free tier
+    // Explicitly split into create (public) + read/update/delete (admin)
     match /analytics_daily/{docId} {
-      allow write: if true;
-      allow read: if isAdminOrSuperAdmin();
+      allow create, update: if true;
+      allow read, delete: if isAdminOrSuperAdmin();
     }
 
     match /analytics_monthly/{docId} {
-      allow write: if true;
-      allow read: if isAdminOrSuperAdmin();
+      allow create, update: if true;
+      allow read, delete: if isAdminOrSuperAdmin();
     }
 
     // =====================================================
-    // DEFAULT DENY (BEST PRACTICE)
+    // DEFAULT DENY
     // =====================================================
 
     match /{document=**} {

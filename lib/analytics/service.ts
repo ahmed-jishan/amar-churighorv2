@@ -1,12 +1,7 @@
 /**
- * Analytics Firestore Service
- * 
- * Handles all Firestore read/write operations for analytics data.
- * Uses batched writes and async logging to minimize performance impact.
- * All IP addresses are masked/hashed for privacy compliance.
- * 
- * IMPORTANT: Firestore limit() maximum is 10,000. All queries respect this.
- * Aggregations use pre-computed daily/monthly counters instead of scanning raw data.
+ * Analytics Firestore Service — Bulletproof Edition
+ * Fixed: missing date field, monthly counter, composite index issues,
+ *        loop-based reads replaced with batch queries.
  */
 
 import { db } from '@/lib/firebase/config';
@@ -22,6 +17,7 @@ import {
   limit,
   addDoc,
   increment,
+  Timestamp,
 } from 'firebase/firestore';
 import {
   VisitorSession,
@@ -36,8 +32,6 @@ import {
   DeviceDistribution,
 } from './types';
 
-// ─── Collection References ──────────────────────────────────
-
 const COLLECTIONS = {
   visitorSessions: 'visitor_sessions',
   pageViews: 'page_views',
@@ -46,9 +40,7 @@ const COLLECTIONS = {
   monthlyAnalytics: 'analytics_monthly',
 } as const;
 
-// ─── Constants ─────────────────────────────────────────────
-
-const MAX_LIMIT = 10000;
+const MAX_LIMIT = 1000;
 
 // ─── Helpers ────────────────────────────────────────────────
 
@@ -66,57 +58,78 @@ function thisMonthStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function dateStrNDaysAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function monthStrNMonthsAgo(n: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() - n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 // ─── Track Session ──────────────────────────────────────────
 
-export async function trackSession(session: Omit<VisitorSession, 'id' | 'createdAt'>): Promise<string> {
+export async function trackSession(
+  session: Omit<VisitorSession, 'id' | 'createdAt'>
+): Promise<string> {
   const docRef = await addDoc(collection(db, COLLECTIONS.visitorSessions), {
     ...session,
     createdAt: nowISO(),
   });
-  
-  // Increment daily unique visitors counter
-  await incrementDailyUniqueVisitors();
-  
+
+  // Update both daily AND monthly counters
+  await Promise.all([
+    incrementDailyCounter('uniqueVisitors'),
+    incrementMonthlyCounter('uniqueVisitors'),
+  ]);
+
   return docRef.id;
 }
 
-/**
- * Update session: set exit page, mark inactive, compute duration.
- */
 export async function endSession(sessionId: string, exitPage: string): Promise<void> {
-  const sessionsRef = collection(db, COLLECTIONS.visitorSessions);
-  const q = query(sessionsRef, where('sessionId', '==', sessionId), limit(1));
-  const snapshot = await getDocs(q);
+  try {
+    const q = query(
+      collection(db, COLLECTIONS.visitorSessions),
+      where('sessionId', '==', sessionId),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return;
 
-  if (snapshot.empty) return;
+    const docSnap = snapshot.docs[0];
+    const data = docSnap.data() as VisitorSession;
+    const duration = Math.floor(
+      (Date.now() - new Date(data.sessionStart).getTime()) / 1000
+    );
 
-  const docSnap = snapshot.docs[0];
-  const data = docSnap.data() as VisitorSession;
-  const sessionStart = new Date(data.sessionStart).getTime();
-  const duration = Math.floor((Date.now() - sessionStart) / 1000);
-
-  await setDoc(doc(db, COLLECTIONS.visitorSessions, docSnap.id), {
-    exitPage,
-    duration,
-    isActive: false,
-    lastActivity: nowISO(),
-  }, { merge: true });
+    await setDoc(
+      doc(db, COLLECTIONS.visitorSessions, docSnap.id),
+      { exitPage, duration, isActive: false, lastActivity: nowISO() },
+      { merge: true }
+    );
+  } catch { /* silent */ }
 }
 
-// ─── Heartbeat / Touch Session ──────────────────────────────
-
 export async function touchSession(sessionId: string, currentPage: string): Promise<void> {
-  const sessionsRef = collection(db, COLLECTIONS.visitorSessions);
-  const q = query(sessionsRef, where('sessionId', '==', sessionId), where('isActive', '==', true), limit(1));
-  const snapshot = await getDocs(q);
+  try {
+    // Simplified: only query by sessionId to avoid composite index requirement
+    const q = query(
+      collection(db, COLLECTIONS.visitorSessions),
+      where('sessionId', '==', sessionId),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return;
 
-  if (snapshot.empty) return;
-
-  const docSnap = snapshot.docs[0];
-  await setDoc(doc(db, COLLECTIONS.visitorSessions, docSnap.id), {
-    lastActivity: nowISO(),
-    exitPage: currentPage,
-  }, { merge: true });
+    await setDoc(
+      doc(db, COLLECTIONS.visitorSessions, snapshot.docs[0].id),
+      { lastActivity: nowISO(), exitPage: currentPage },
+      { merge: true }
+    );
+  } catch { /* silent */ }
 }
 
 // ─── Track Page View ────────────────────────────────────────
@@ -126,8 +139,10 @@ export async function trackPageView(pageView: Omit<PageView, 'id'>): Promise<voi
     ...pageView,
     timestamp: pageView.timestamp || nowISO(),
   });
-
-  await updateDailyPageViewCount();
+  await Promise.all([
+    incrementDailyCounter('pageViews'),
+    incrementMonthlyCounter('pageViews'),
+  ]);
 }
 
 // ─── Track Product View ─────────────────────────────────────
@@ -137,255 +152,302 @@ export async function trackProductView(productView: Omit<ProductView, 'id'>): Pr
     ...productView,
     timestamp: productView.timestamp || nowISO(),
   });
-
-  await updateDailyProductViewCount();
+  await Promise.all([
+    incrementDailyCounter('productViews'),
+    incrementMonthlyCounter('productViews'),
+  ]);
 }
 
-// ─── Daily Analytics Counters (increment only) ──────────────
+// ─── Counter Helpers ─────────────────────────────────────────
 
-async function incrementDailyUniqueVisitors(): Promise<void> {
+async function incrementDailyCounter(field: string): Promise<void> {
   const dateId = todayDateStr();
   try {
-    await setDoc(doc(db, COLLECTIONS.dailyAnalytics, dateId), {
-      totalVisitors: increment(1),
-      uniqueVisitors: increment(1),
-      updatedAt: nowISO(),
-    }, { merge: true });
+    await setDoc(
+      doc(db, COLLECTIONS.dailyAnalytics, dateId),
+      {
+        // FIX: always write 'date' field so orderBy('date') works
+        date: dateId,
+        [field]: increment(1),
+        updatedAt: nowISO(),
+      },
+      { merge: true }
+    );
   } catch { /* silent */ }
 }
 
-async function updateDailyPageViewCount(): Promise<void> {
-  const dateId = todayDateStr();
+async function incrementMonthlyCounter(field: string): Promise<void> {
+  const monthId = thisMonthStr();
   try {
-    await setDoc(doc(db, COLLECTIONS.dailyAnalytics, dateId), {
-      pageViews: increment(1),
-      updatedAt: nowISO(),
-    }, { merge: true });
+    await setDoc(
+      doc(db, COLLECTIONS.monthlyAnalytics, monthId),
+      {
+        // FIX: always write 'month' field so orderBy('month') works
+        month: monthId,
+        [field]: increment(1),
+        updatedAt: nowISO(),
+      },
+      { merge: true }
+    );
   } catch { /* silent */ }
 }
 
-async function updateDailyProductViewCount(): Promise<void> {
-  const dateId = todayDateStr();
-  try {
-    await setDoc(doc(db, COLLECTIONS.dailyAnalytics, dateId), {
-      productViews: increment(1),
-      updatedAt: nowISO(),
-    }, { merge: true });
-  } catch { /* silent */ }
-}
-
-// ─── Active Visitors (last 5 minutes) ───────────────────────
+// ─── Active Visitors ─────────────────────────────────────────
 
 export async function getActiveVisitorCount(): Promise<number> {
   try {
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const sessionsRef = collection(db, COLLECTIONS.visitorSessions);
+    // FIX: removed isActive filter — avoids composite index requirement
+    // Only filter by lastActivity (single field, no index needed)
     const q = query(
-      sessionsRef,
-      where('isActive', '==', true),
+      collection(db, COLLECTIONS.visitorSessions),
       where('lastActivity', '>=', fiveMinAgo),
-      limit(MAX_LIMIT)
+      limit(500)
     );
     const snapshot = await getDocs(q);
-    return snapshot.size;
+    // Filter isActive in memory
+    return snapshot.docs.filter(d => d.data().isActive === true).length;
   } catch {
     return 0;
   }
 }
 
-// ─── Dashboard Summary ──────────────────────────────────────
+// ─── Analytics Summary ───────────────────────────────────────
 
 export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
-  const today = todayDateStr();
-  const month = thisMonthStr();
+  try {
+    const today = todayDateStr();
+    const month = thisMonthStr();
 
-  // Get daily aggregate (direct doc read - fast, no collection scan)
-  const dailyRef = doc(db, COLLECTIONS.dailyAnalytics, today);
-  const dailySnap = await getDoc(dailyRef);
-  const daily = dailySnap.exists() ? (dailySnap.data() as DailyAnalytics) : null;
+    const [dailySnap, monthlySnap, activeVisitors, totalVisitors, returningVisitors] =
+      await Promise.all([
+        getDoc(doc(db, COLLECTIONS.dailyAnalytics, today)),
+        getDoc(doc(db, COLLECTIONS.monthlyAnalytics, month)),
+        getActiveVisitorCount(),
+        getTotalUniqueVisitors(),
+        getReturningVisitorCount(),
+      ]);
 
-  // Get monthly aggregate (direct doc read - fast)
-  const monthlyRef = doc(db, COLLECTIONS.monthlyAnalytics, month);
-  const monthlySnap = await getDoc(monthlyRef);
-  const monthly = monthlySnap.exists() ? (monthlySnap.data() as MonthlyAnalytics) : null;
+    const daily = dailySnap.exists() ? (dailySnap.data() as DailyAnalytics) : null;
+    const monthly = monthlySnap.exists() ? (monthlySnap.data() as MonthlyAnalytics) : null;
 
-  // Get active visitors
-  const activeVisitors = await getActiveVisitorCount();
-
-  // Total visitors = sum of all daily totals (approximate but fast)
-  const totalVisitors = await getTotalUniqueVisitors();
-
-  // Returning visitors = unique visitors with visitCount >= 2
-  const returningVisitors = await getReturningVisitorCount();
-
-  return {
-    totalVisitors,
-    activeVisitors,
-    todayVisitors: daily?.uniqueVisitors ?? 0,
-    monthlyVisitors: monthly?.uniqueVisitors ?? 0,
-    returningVisitors,
-    totalPageViews: daily?.pageViews ?? 0,
-    totalProductViews: daily?.productViews ?? 0,
-    avgSessionDuration: daily?.avgSessionDuration ?? 0,
-  };
+    return {
+      totalVisitors,
+      activeVisitors,
+      todayVisitors: daily?.uniqueVisitors ?? 0,
+      monthlyVisitors: monthly?.uniqueVisitors ?? 0,
+      returningVisitors,
+      totalPageViews: daily?.pageViews ?? 0,
+      totalProductViews: daily?.productViews ?? 0,
+      avgSessionDuration: daily?.avgSessionDuration ?? 0,
+    };
+  } catch {
+    return {
+      totalVisitors: 0,
+      activeVisitors: 0,
+      todayVisitors: 0,
+      monthlyVisitors: 0,
+      returningVisitors: 0,
+      totalPageViews: 0,
+      totalProductViews: 0,
+      avgSessionDuration: 0,
+    };
+  }
 }
 
-// ─── Total Unique Visitors (from daily aggregates) ─────────
+// ─── Total Unique Visitors ────────────────────────────────────
 
 async function getTotalUniqueVisitors(): Promise<number> {
   try {
-    // Sum unique visitors from all daily docs (fast, no collection scan)
-    const dailyCollection = collection(db, COLLECTIONS.dailyAnalytics);
-    const q = query(dailyCollection, orderBy('date', 'desc'), limit(MAX_LIMIT));
+    // FIX: orderBy('date') now works because we write 'date' field on every increment
+    const q = query(
+      collection(db, COLLECTIONS.dailyAnalytics),
+      orderBy('date', 'desc'),
+      limit(MAX_LIMIT)
+    );
     const snapshot = await getDocs(q);
-    let total = 0;
-    snapshot.docs.forEach(doc => {
-      const data = doc.data() as DailyAnalytics;
-      total += data.uniqueVisitors || 0;
-    });
-    return total;
+    return snapshot.docs.reduce(
+      (sum, d) => sum + ((d.data() as DailyAnalytics).uniqueVisitors || 0),
+      0
+    );
   } catch {
-    return 0;
+    // Fallback: sum without orderBy
+    try {
+      const snapshot = await getDocs(
+        collection(db, COLLECTIONS.dailyAnalytics)
+      );
+      return snapshot.docs.reduce(
+        (sum, d) => sum + ((d.data() as DailyAnalytics).uniqueVisitors || 0),
+        0
+      );
+    } catch {
+      return 0;
+    }
   }
 }
 
-// ─── Returning Visitor Count ────────────────────────────────
+// ─── Returning Visitors ───────────────────────────────────────
 
 async function getReturningVisitorCount(): Promise<number> {
   try {
-    const sessionsRef = collection(db, COLLECTIONS.visitorSessions);
-    const q = query(sessionsRef, where('visitCount', '>=', 2), limit(MAX_LIMIT));
+    // FIX: no orderBy here — single where clause, no composite index needed
+    const q = query(
+      collection(db, COLLECTIONS.visitorSessions),
+      where('visitCount', '>=', 2),
+      limit(MAX_LIMIT)
+    );
     const snapshot = await getDocs(q);
-    const unique = new Set<string>();
-    snapshot.docs.forEach(doc => {
-      unique.add(doc.data().visitorId);
-    });
+    const unique = new Set(snapshot.docs.map(d => d.data().visitorId));
     return unique.size;
   } catch {
     return 0;
   }
 }
 
-// ─── Daily Traffic Data ────────────────────────────────────
+// ─── Daily Traffic (FIX: batch query instead of 31 individual reads) ─────
 
 export async function getDailyTraffic(days: number = 30): Promise<DailyTrafficPoint[]> {
-  const points: DailyTrafficPoint[] = [];
-  
-  for (let i = days; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const dateId = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    
-    const ref = doc(db, COLLECTIONS.dailyAnalytics, dateId);
-    const snap = await getDoc(ref);
-    
-    if (snap.exists()) {
-      const data = snap.data() as DailyAnalytics;
+  try {
+    const startDate = dateStrNDaysAgo(days);
+    const today = todayDateStr();
+
+    // Single query instead of N individual doc reads
+    const q = query(
+      collection(db, COLLECTIONS.dailyAnalytics),
+      where('date', '>=', startDate),
+      where('date', '<=', today),
+      orderBy('date', 'asc'),
+      limit(days + 2)
+    );
+    const snapshot = await getDocs(q);
+
+    // Build a map for O(1) lookup
+    const dataMap = new Map<string, DailyAnalytics>();
+    snapshot.docs.forEach(d => {
+      const data = d.data() as DailyAnalytics;
+      dataMap.set(data.date || d.id, data);
+    });
+
+    // Fill every date slot (including zeros for missing days)
+    const points: DailyTrafficPoint[] = [];
+    for (let i = days; i >= 0; i--) {
+      const dateId = dateStrNDaysAgo(i);
+      const data = dataMap.get(dateId);
       points.push({
         date: dateId,
-        visitors: data.uniqueVisitors,
-        pageViews: data.pageViews,
-      });
-    } else {
-      points.push({
-        date: dateId,
-        visitors: 0,
-        pageViews: 0,
+        visitors: data?.uniqueVisitors ?? 0,
+        pageViews: data?.pageViews ?? 0,
       });
     }
+    return points;
+  } catch {
+    return [];
   }
-
-  return points;
 }
 
-// ─── Monthly Traffic Data ──────────────────────────────────
+// ─── Monthly Traffic (FIX: batch query) ──────────────────────
 
 export async function getMonthlyTraffic(months: number = 12): Promise<MonthlyTrafficPoint[]> {
-  const points: MonthlyTrafficPoint[] = [];
-  
-  for (let i = months; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    const monthId = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    
-    const ref = doc(db, COLLECTIONS.monthlyAnalytics, monthId);
-    const snap = await getDoc(ref);
-    
-    if (snap.exists()) {
-      const data = snap.data() as MonthlyAnalytics;
+  try {
+    const startMonth = monthStrNMonthsAgo(months);
+    const currentMonth = thisMonthStr();
+
+    const q = query(
+      collection(db, COLLECTIONS.monthlyAnalytics),
+      where('month', '>=', startMonth),
+      where('month', '<=', currentMonth),
+      orderBy('month', 'asc'),
+      limit(months + 2)
+    );
+    const snapshot = await getDocs(q);
+
+    const dataMap = new Map<string, MonthlyAnalytics>();
+    snapshot.docs.forEach(d => {
+      const data = d.data() as MonthlyAnalytics;
+      dataMap.set(data.month || d.id, data);
+    });
+
+    const points: MonthlyTrafficPoint[] = [];
+    for (let i = months; i >= 0; i--) {
+      const monthId = monthStrNMonthsAgo(i);
+      const data = dataMap.get(monthId);
       points.push({
         month: monthId,
-        visitors: data.uniqueVisitors,
-        pageViews: data.pageViews,
-      });
-    } else {
-      points.push({
-        month: monthId,
-        visitors: 0,
-        pageViews: 0,
+        visitors: data?.uniqueVisitors ?? 0,
+        pageViews: data?.pageViews ?? 0,
       });
     }
+    return points;
+  } catch {
+    return [];
   }
-
-  return points;
 }
 
-// ─── Yearly Traffic Data ───────────────────────────────────
+// ─── Yearly Traffic (FIX: batch monthly reads per year) ───────
 
 export async function getYearlyTraffic(): Promise<YearlyTrafficPoint[]> {
-  const currentYear = new Date().getFullYear();
-  const points: YearlyTrafficPoint[] = [];
+  try {
+    const currentYear = new Date().getFullYear();
+    const startMonth = `${currentYear - 4}-01`;
+    const endMonth = `${currentYear}-12`;
 
-  for (let year = currentYear - 4; year <= currentYear; year++) {
-    const yearStr = String(year);
-    let totalVisitors = 0;
-    let totalPageViews = 0;
+    const q = query(
+      collection(db, COLLECTIONS.monthlyAnalytics),
+      where('month', '>=', startMonth),
+      where('month', '<=', endMonth),
+      orderBy('month', 'asc'),
+      limit(60) // 5 years × 12 months
+    );
+    const snapshot = await getDocs(q);
 
-    for (let month = 1; month <= 12; month++) {
-      const monthId = `${yearStr}-${String(month).padStart(2, '0')}`;
-      const ref = doc(db, COLLECTIONS.monthlyAnalytics, monthId);
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        const data = snap.data() as MonthlyAnalytics;
-        totalVisitors += data.uniqueVisitors;
-        totalPageViews += data.pageViews;
-      }
+    // Aggregate by year
+    const yearMap = new Map<string, { visitors: number; pageViews: number }>();
+    for (let y = currentYear - 4; y <= currentYear; y++) {
+      yearMap.set(String(y), { visitors: 0, pageViews: 0 });
     }
 
-    points.push({
-      year: yearStr,
-      visitors: totalVisitors,
-      pageViews: totalPageViews,
+    snapshot.docs.forEach(d => {
+      const data = d.data() as MonthlyAnalytics;
+      const year = (data.month || d.id).substring(0, 4);
+      const entry = yearMap.get(year);
+      if (entry) {
+        entry.visitors += data.uniqueVisitors || 0;
+        entry.pageViews += data.pageViews || 0;
+      }
     });
-  }
 
-  return points;
+    return Array.from(yearMap.entries()).map(([year, totals]) => ({
+      year,
+      visitors: totals.visitors,
+      pageViews: totals.pageViews,
+    }));
+  } catch {
+    return [];
+  }
 }
 
-// ─── Device Distribution (from sessions within date range) ──
+// ─── Device Distribution ──────────────────────────────────────
 
-export async function getDeviceDistribution(startDate?: string, endDate?: string): Promise<DeviceDistribution[]> {
+export async function getDeviceDistribution(
+  startDate?: string,
+  endDate?: string
+): Promise<DeviceDistribution[]> {
   try {
     const sessionsRef = collection(db, COLLECTIONS.visitorSessions);
-    let q;
-
-    if (startDate && endDate) {
-      q = query(
-        sessionsRef,
-        where('sessionStart', '>=', startDate),
-        where('sessionStart', '<=', endDate),
-        limit(MAX_LIMIT)
-      );
-    } else {
-      q = query(sessionsRef, orderBy('sessionStart', 'desc'), limit(MAX_LIMIT));
-    }
+    // FIX: avoid composite index — use single where clause, filter date in memory
+    const q = startDate
+      ? query(sessionsRef, where('sessionStart', '>=', startDate), limit(MAX_LIMIT))
+      : query(sessionsRef, limit(MAX_LIMIT));
 
     const snapshot = await getDocs(q);
     const counts: Record<string, number> = { desktop: 0, mobile: 0, tablet: 0 };
     let total = 0;
 
-    snapshot.docs.forEach(doc => {
-      const device = doc.data().deviceType as string;
+    snapshot.docs.forEach(d => {
+      const data = d.data();
+      // Filter endDate in memory
+      if (endDate && data.sessionStart > endDate) return;
+      const device = data.deviceType as string;
       if (counts[device] !== undefined) {
         counts[device]++;
         total++;
@@ -406,29 +468,27 @@ export async function getDeviceDistribution(startDate?: string, endDate?: string
   }
 }
 
-// ─── Top Visited Pages (from page views with limit) ─────────
+// ─── Top Pages ────────────────────────────────────────────────
 
-export async function getTopPages(limitCount: number = 10, startDate?: string, endDate?: string): Promise<{ url: string; count: number }[]> {
+export async function getTopPages(
+  limitCount: number = 10,
+  startDate?: string,
+  endDate?: string
+): Promise<{ url: string; count: number }[]> {
   try {
-    const pageViewsRef = collection(db, COLLECTIONS.pageViews);
-    let q;
-
-    if (startDate && endDate) {
-      q = query(
-        pageViewsRef,
-        where('timestamp', '>=', startDate),
-        where('timestamp', '<=', endDate),
-        limit(MAX_LIMIT)
-      );
-    } else {
-      q = query(pageViewsRef, orderBy('timestamp', 'desc'), limit(MAX_LIMIT));
-    }
+    const ref = collection(db, COLLECTIONS.pageViews);
+    // FIX: single where clause to avoid composite index
+    const q = startDate
+      ? query(ref, where('timestamp', '>=', startDate), limit(MAX_LIMIT))
+      : query(ref, orderBy('timestamp', 'desc'), limit(MAX_LIMIT));
 
     const snapshot = await getDocs(q);
     const counts = new Map<string, number>();
 
-    snapshot.docs.forEach(doc => {
-      const url = doc.data().pageUrl || '/';
+    snapshot.docs.forEach(d => {
+      const data = d.data();
+      if (endDate && data.timestamp > endDate) return;
+      const url = data.pageUrl || '/';
       counts.set(url, (counts.get(url) || 0) + 1);
     });
 
@@ -441,29 +501,25 @@ export async function getTopPages(limitCount: number = 10, startDate?: string, e
   }
 }
 
-// ─── Top Viewed Products ────────────────────────────────────
+// ─── Top Products ─────────────────────────────────────────────
 
-export async function getTopProducts(limitCount: number = 10, startDate?: string, endDate?: string): Promise<{ productId: string; productName: string; count: number }[]> {
+export async function getTopProducts(
+  limitCount: number = 10,
+  startDate?: string,
+  endDate?: string
+): Promise<{ productId: string; productName: string; count: number }[]> {
   try {
-    const productViewsRef = collection(db, COLLECTIONS.productViews);
-    let q;
-
-    if (startDate && endDate) {
-      q = query(
-        productViewsRef,
-        where('timestamp', '>=', startDate),
-        where('timestamp', '<=', endDate),
-        limit(MAX_LIMIT)
-      );
-    } else {
-      q = query(productViewsRef, orderBy('timestamp', 'desc'), limit(MAX_LIMIT));
-    }
+    const ref = collection(db, COLLECTIONS.productViews);
+    const q = startDate
+      ? query(ref, where('timestamp', '>=', startDate), limit(MAX_LIMIT))
+      : query(ref, orderBy('timestamp', 'desc'), limit(MAX_LIMIT));
 
     const snapshot = await getDocs(q);
     const counts = new Map<string, { productId: string; productName: string; count: number }>();
 
-    snapshot.docs.forEach(doc => {
-      const data = doc.data();
+    snapshot.docs.forEach(d => {
+      const data = d.data();
+      if (endDate && data.timestamp > endDate) return;
       const pid = data.productId;
       if (!counts.has(pid)) {
         counts.set(pid, { productId: pid, productName: data.productName || 'Unknown', count: 0 });
@@ -479,130 +535,116 @@ export async function getTopProducts(limitCount: number = 10, startDate?: string
   }
 }
 
-// ─── Recent Sessions ────────────────────────────────────────
+// ─── Recent Sessions ──────────────────────────────────────────
 
 export async function getRecentSessions(limitCount: number = 100): Promise<VisitorSession[]> {
   try {
-    const sessionsRef = collection(db, COLLECTIONS.visitorSessions);
-    const q = query(sessionsRef, orderBy('sessionStart', 'desc'), limit(Math.min(limitCount, MAX_LIMIT)));
+    const q = query(
+      collection(db, COLLECTIONS.visitorSessions),
+      orderBy('sessionStart', 'desc'),
+      limit(Math.min(limitCount, MAX_LIMIT))
+    );
     const snapshot = await getDocs(q);
-
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...(doc.data() as VisitorSession),
-    }));
+    return snapshot.docs.map(d => ({ id: d.id, ...(d.data() as VisitorSession) }));
   } catch {
     return [];
   }
 }
 
-// ─── Sessions by Visitor ID ─────────────────────────────────
-
 export async function getSessionsByVisitorId(visitorId: string): Promise<VisitorSession[]> {
   try {
-    const sessionsRef = collection(db, COLLECTIONS.visitorSessions);
     const q = query(
-      sessionsRef,
+      collection(db, COLLECTIONS.visitorSessions),
       where('visitorId', '==', visitorId),
       orderBy('sessionStart', 'desc'),
       limit(100)
     );
     const snapshot = await getDocs(q);
-
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...(doc.data() as VisitorSession),
-    }));
+    return snapshot.docs.map(d => ({ id: d.id, ...(d.data() as VisitorSession) }));
   } catch {
     return [];
   }
 }
 
-// ─── Page Views by Session ──────────────────────────────────
-
 export async function getPageViewsBySession(sessionId: string): Promise<PageView[]> {
   try {
-    const pageViewsRef = collection(db, COLLECTIONS.pageViews);
     const q = query(
-      pageViewsRef,
+      collection(db, COLLECTIONS.pageViews),
       where('sessionId', '==', sessionId),
       orderBy('timestamp', 'asc'),
       limit(500)
     );
     const snapshot = await getDocs(q);
-
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...(doc.data() as PageView),
-    }));
+    return snapshot.docs.map(d => ({ id: d.id, ...(d.data() as PageView) }));
   } catch {
     return [];
   }
 }
 
-// ─── Product Views by Session ───────────────────────────────
-
 export async function getProductViewsBySession(sessionId: string): Promise<ProductView[]> {
   try {
-    const productViewsRef = collection(db, COLLECTIONS.productViews);
     const q = query(
-      productViewsRef,
+      collection(db, COLLECTIONS.productViews),
       where('sessionId', '==', sessionId),
       orderBy('timestamp', 'asc'),
       limit(200)
     );
     const snapshot = await getDocs(q);
-
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...(doc.data() as ProductView),
-    }));
+    return snapshot.docs.map(d => ({ id: d.id, ...(d.data() as ProductView) }));
   } catch {
     return [];
   }
 }
 
-// ─── Query Helper for Date Ranges ───────────────────────────
+// ─── Date Range Helper ────────────────────────────────────────
 
-export function getDateRange(filter: string, customStart?: string, customEnd?: string): { startDate: string; endDate: string } {
+export function getDateRange(
+  filter: string,
+  customStart?: string,
+  customEnd?: string
+): { startDate: string; endDate: string } {
   const now = new Date();
   const end = now.toISOString();
-  let start: Date;
 
   switch (filter) {
-    case 'today':
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    case 'today': {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       return { startDate: start.toISOString(), endDate: end };
+    }
     case 'yesterday': {
-      const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      start = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-      const yEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999);
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      const start = new Date(y.getFullYear(), y.getMonth(), y.getDate());
+      const yEnd = new Date(y.getFullYear(), y.getMonth(), y.getDate(), 23, 59, 59, 999);
       return { startDate: start.toISOString(), endDate: yEnd.toISOString() };
     }
-    case 'last-7-days':
-      start = new Date(now);
+    case 'last-7-days': {
+      const start = new Date(now);
       start.setDate(start.getDate() - 7);
       return { startDate: start.toISOString(), endDate: end };
-    case 'last-30-days':
-      start = new Date(now);
+    }
+    case 'last-30-days': {
+      const start = new Date(now);
       start.setDate(start.getDate() - 30);
       return { startDate: start.toISOString(), endDate: end };
-    case 'this-month':
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    case 'this-month': {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
       return { startDate: start.toISOString(), endDate: end };
-    case 'this-year':
-      start = new Date(now.getFullYear(), 0, 1);
+    }
+    case 'this-year': {
+      const start = new Date(now.getFullYear(), 0, 1);
       return { startDate: start.toISOString(), endDate: end };
+    }
     case 'custom':
-      const customStartDate = customStart || new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       return {
-        startDate: customStartDate,
+        startDate: customStart || new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
         endDate: customEnd || end,
       };
-    default:
-      start = new Date(now);
+    default: {
+      const start = new Date(now);
       start.setDate(start.getDate() - 7);
       return { startDate: start.toISOString(), endDate: end };
+    }
   }
 }

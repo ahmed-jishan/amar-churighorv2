@@ -1,7 +1,7 @@
 import { db } from './config';
 import {
   collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc,
-  query, orderBy
+  query, orderBy, where
 } from 'firebase/firestore';
 import { ProductCategory } from '@/types';
 
@@ -11,6 +11,14 @@ export async function getCategories(): Promise<ProductCategory[]> {
   const q = query(collection(db, COLLECTION), orderBy('sortOrder', 'asc'));
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductCategory));
+}
+
+export async function getActiveCategories(): Promise<ProductCategory[]> {
+  const q = query(collection(db, COLLECTION), where('isActive', '==', true));
+  const snap = await getDocs(q);
+  const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductCategory));
+  items.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  return items;
 }
 
 export async function getCategoryById(id: string): Promise<ProductCategory | null> {
