@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import './globals.css';
 import { CartProvider } from '@/context/CartContext';
+import './globals.css';
+import AnonymousIdentity from '@/components/AnonymousIdentity';
 import UserLayoutWrapper from '@/components/UserLayoutWrapper';
 import { Toaster } from 'react-hot-toast';
 
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased min-h-screen flex flex-col`} suppressHydrationWarning>
         <CartProvider>
+          <AnonymousIdentity />
           <UserLayoutWrapper>{children}</UserLayoutWrapper>
           <Toaster position="bottom-right" />
         </CartProvider>

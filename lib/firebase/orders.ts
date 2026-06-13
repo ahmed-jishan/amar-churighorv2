@@ -4,6 +4,7 @@ import {
   where, orderBy, limit, Timestamp
 } from 'firebase/firestore';
 import { Order, OrderStatus } from '@/types';
+import { getAnonymousId } from '@/lib/anonymousUser';
 import { deductStockAtomic, replenishStock } from './products';
 import {
   incrementProductSalesStats,
@@ -16,7 +17,7 @@ function generateOrderId(): string {
   return 'AC' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 5).toUpperCase();
 }
 
-export async function createOrder(data: Omit<Order, 'id' | 'orderId' | 'createdAt' | 'updatedAt' | 'statusHistory'>): Promise<string> {
+export async function createOrder(data: Omit<Order, 'id' | 'orderId' | 'createdAt' | 'updatedAt' | 'statusHistory'>): Promise<{ orderId: string; trackingToken: string }> {
   const orderId = generateOrderId();
   const now = new Date().toISOString();
 
@@ -33,15 +34,20 @@ export async function createOrder(data: Omit<Order, 'id' | 'orderId' | 'createdA
     }
   }
 
+  const trackingToken = crypto.randomUUID();
   const ref = await addDoc(collection(db, COLLECTION), {
     ...data,
     orderId,
+    anonymousId: getAnonymousId(),
+    trackingToken,
+    trackingTokenExpiry: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+    notificationSent: false,
     status: 'pending',
-    statusHistory: [{ status: 'pending', timestamp: now }],
+    statusHistory: [{ status: 'pending', timestamp: now, note: 'Order placed by customer' }],
     createdAt: now,
     updatedAt: now,
   });
-  return orderId;
+  return { orderId, trackingToken };
 }
 
 export async function getOrderByOrderId(orderId: string): Promise<Order | null> {

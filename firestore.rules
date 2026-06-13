@@ -71,7 +71,11 @@ service cloud.firestore {
 
     match /orders/{orderId} {
       allow create: if true;
-      allow read: if isAdminOrSuperAdmin();
+      allow read: if isAdminOrSuperAdmin() || (
+        // Token-gated public read for order tracking
+        request.query.trackingToken != null &&
+        resource.data.trackingToken == request.query.trackingToken
+      );
       allow update, delete: if isAdminOrSuperAdmin();
     }
 

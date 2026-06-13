@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { getAllOrders, updateOrderStatus } from '@/lib/firebase/orders';
 import { Order, OrderStatus } from '@/types';
 import { formatPrice } from '@/lib/utils';
-import { Search, ImageIcon, Mail } from 'lucide-react';
+import { Search, ImageIcon, Mail, Clock } from 'lucide-react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 
@@ -19,12 +19,27 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
 };
 
+function formatRelativeTime(iso: string): string {
+  const now = Date.now();
+  const then = new Date(iso).getTime();
+  const diff = now - then;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | OrderStatus>('all');
   const [selected, setSelected] = useState<Order | null>(null);
+  const [statusNote, setStatusNote] = useState('');
 
   useEffect(() => {
     getAllOrders().then(o => { setOrders(o); setLoading(false); });
@@ -40,10 +55,11 @@ export default function AdminOrdersPage() {
   });
 
   const handleStatusUpdate = async (order: Order, status: OrderStatus) => {
-    await updateOrderStatus(order.id, status);
+    await updateOrderStatus(order.id, status, statusNote || undefined);
     setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status } : o));
     if (selected?.id === order.id) setSelected({ ...selected, status });
     toast.success(`Order ${order.orderId} updated to ${status}`);
+    setStatusNote('');
   };
 
   return (
@@ -157,13 +173,53 @@ export default function AdminOrdersPage() {
                       <button key={s} onClick={() => handleStatusUpdate(selected, s)}
                         disabled={selected.status === s}
                         className={`px-3 py-2 rounded-lg text-xs border capitalize transition ${
-                          selected.status === s ? 'opacity-50 cursor-not-allowed ' + STATUS_COLORS[s] : 'border-[#1f3334] text-gray-400 hover:border-green-500 hover:text-green-400'
+                          selected.status === s
+                            ? s === 'cancelled'
+                              ? 'bg-red-600 text-white border-red-600 opacity-90'
+                              : 'bg-[#d7ffa4] text-[#051a1b] border-[#d7ffa4] font-bold'
+                            : 'border-[#1f3334] text-gray-400 hover:border-green-500 hover:text-green-400'
                         }`}>
                         {s}
                       </button>
                     ))}
                   </div>
+                  {/* Admin Note Input */}
+                  <div className="mt-3">
+                    <input
+                      value={statusNote}
+                      onChange={e => setStatusNote(e.target.value)}
+                      placeholder="Add a note for this status change (optional)"
+                      className="w-full p-2 bg-[#051a1b] border border-[#1f3334] rounded-lg text-xs text-white outline-none focus:border-green-500 placeholder-gray-600"
+                    />
+                  </div>
                 </div>
+
+                {/* Status History */}
+                {selected.statusHistory && selected.statusHistory.length > 0 && (
+                  <div className="border-t border-[#1f3334] pt-4">
+                    <p className="text-gray-500 mb-2 text-xs uppercase flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> Status History
+                    </p>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {[...selected.statusHistory].reverse().map((entry, i) => (
+                        <div key={i} className="flex items-start gap-2 text-xs border-b border-[#1f3334]/30 pb-2 last:border-0 last:pb-0">
+                          <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${
+                            entry.status === 'cancelled' ? 'bg-red-500' : 'bg-green-500'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium capitalize text-gray-300">{entry.status}</span>
+                              <span className="text-gray-600" title={new Date(entry.timestamp).toLocaleString()}>
+                                {formatRelativeTime(entry.timestamp)}
+                              </span>
+                            </div>
+                            {entry.note && <p className="text-gray-500 mt-0.5 truncate">{entry.note}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

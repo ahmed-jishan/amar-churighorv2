@@ -47,7 +47,7 @@ export default function CheckoutPage() {
   const onSubmit = async (data: CheckoutFormData) => {
     setSubmitting(true);
     try {
-      const orderId = await createOrder({
+      const { orderId, trackingToken } = await createOrder({
         customer: data,
         items: cart.map(item => ({
           productId: item.id,
@@ -61,6 +61,20 @@ export default function CheckoutPage() {
         total: grandTotal,
         status: 'pending',
       });
+
+      // Fire-and-forget email notification (non-blocking)
+      fetch('/api/notify-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          trackingToken,
+          email: data.email,
+          customerName: data.fullName,
+          total: grandTotal,
+        }),
+      }).catch(() => {}); // Silently ignore — don't block the redirect
+
       clearCart();
       router.push(`/order-success?id=${orderId}`);
     } catch (e: any) {

@@ -93,6 +93,10 @@ export interface Order {
   total: number;
   status: OrderStatus;
   statusHistory: { status: OrderStatus; timestamp: string; note?: string }[];
+  anonymousId?: string;
+  trackingToken?: string;
+  trackingTokenExpiry?: number;
+  notificationSent?: boolean;
   createdAt: string;
   updatedAt: string;
 }

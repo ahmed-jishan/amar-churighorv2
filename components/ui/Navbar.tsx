@@ -29,6 +29,7 @@ export default function Navbar() {
     { href: '/products', label: 'Shop' },
     { href: '/categories', label: 'Categories' },
     { href: '/offers', label: 'Offers' },
+    { href: '/my-orders', label: 'My Orders' },
     { href: '/about', label: 'About' },
   ];
 
