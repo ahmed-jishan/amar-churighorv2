@@ -11,7 +11,12 @@ $envVars = @(
     @{Name="NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME"; Value="dwbmoe9sz"; Sensitive=$false},
     @{Name="NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET"; Value="amar-churighor"; Sensitive=$false},
     @{Name="NEXT_PUBLIC_BASE_URL"; Value="https://amar-churighor.vercel.app"; Sensitive=$false},
-    @{Name="RESEND_API_KEY"; Value="re_BBonNudL_6aDybn6dfdHe7gviYbHsMyUS"; Sensitive=$true}
+    @{Name="SMTP_HOST"; Value="smtp.gmail.com"; Sensitive=$false},
+    @{Name="SMTP_PORT"; Value="587"; Sensitive=$false},
+    @{Name="SMTP_USER"; Value="mgolam644@gmail.com"; Sensitive=$false},
+    @{Name="SMTP_PASS"; Value="dtjp lqnv hfht jnwm"; Sensitive=$true},
+    @{Name="SMTP_FROM"; Value="Amar Churighor <mgolam644@gmail.com>"; Sensitive=$false},
+    @{Name="ADMIN_EMAIL_RECIPIENTS"; Value="mgolam644@gmail.com"; Sensitive=$false}
 )
 
 foreach ($var in $envVars) {

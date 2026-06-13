@@ -97,6 +97,15 @@ export interface Order {
   trackingToken?: string;
   trackingTokenExpiry?: number;
   notificationSent?: boolean;
+  /** When the email was successfully sent (ISO string) */
+  emailSentAt?: string;
+  /** Additional notification metadata */
+  emailInfo?: {
+    success: boolean;
+    error?: string;
+    sentAt: string;
+    to: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

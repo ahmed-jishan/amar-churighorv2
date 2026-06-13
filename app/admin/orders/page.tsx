@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { getAllOrders, updateOrderStatus } from '@/lib/firebase/orders';
 import { Order, OrderStatus } from '@/types';
 import { formatPrice } from '@/lib/utils';
-import { Search, ImageIcon, Mail, Clock } from 'lucide-react';
+import { Search, ImageIcon, Mail, Clock, CheckCircle, XCircle, Send } from 'lucide-react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 
@@ -220,6 +220,112 @@ export default function AdminOrdersPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Email Status */}
+                <div className="border-t border-[#1f3334] pt-4">
+                  <p className="text-gray-500 mb-2 text-xs uppercase flex items-center gap-1">
+                    <Mail className="w-3 h-3" /> Email Notification
+                  </p>
+                  <div className="space-y-2">
+                    {selected.emailInfo ? (
+                      <>
+                        <div className="flex items-center gap-2 text-xs">
+                          {selected.emailInfo.success ? (
+                            <>
+                              <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                              <span className="text-green-400">Sent successfully</span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-3.5 h-3.5 text-red-500" />
+                              <span className="text-red-400">Failed</span>
+                            </>
+                          )}
+                        </div>
+                        <p className="text-gray-500 text-xs">
+                          To: {selected.emailInfo.to}
+                        </p>
+                        {selected.emailInfo.sentAt && (
+                          <p className="text-gray-500 text-xs">
+                            {new Date(selected.emailInfo.sentAt).toLocaleString()}
+                          </p>
+                        )}
+                        {selected.emailInfo.error && (
+                          <p className="text-red-500/70 text-xs italic">
+                            Error: {selected.emailInfo.error}
+                          </p>
+                        )}
+                      </>
+                    ) : selected.notificationSent ? (
+                      <div className="flex items-center gap-2 text-xs">
+                        <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                        <span className="text-green-400">Sent (legacy)</span>
+                        {selected.emailSentAt && (
+                          <span className="text-gray-500">
+                            {new Date(selected.emailSentAt).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs">
+                        <XCircle className="w-3.5 h-3.5 text-gray-500" />
+                        <span className="text-gray-400">Not sent yet</span>
+                      </div>
+                    )}
+
+                    {/* Resend Email Button */}
+                    {selected.customer.email && (
+                      <button
+                        onClick={async () => {
+                          toast.loading('Sending email...');
+                          try {
+                            const res = await fetch('/api/notify-order', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                orderId: selected.orderId,
+                                trackingToken: selected.trackingToken,
+                                email: selected.customer.email,
+                                customerName: selected.customer.fullName,
+                                total: selected.total,
+                                items: selected.items.map(item => ({
+                                  name: item.name,
+                                  quantity: item.quantity,
+                                  price: item.price,
+                                })),
+                                subtotal: selected.subtotal,
+                                deliveryCharge: selected.deliveryCharge,
+                                district: selected.customer.district,
+                                area: selected.customer.area,
+                                address: selected.customer.address,
+                                phone: selected.customer.phone,
+                              }),
+                            });
+                            const data = await res.json();
+                            toast.dismiss();
+                            if (data.success) {
+                              toast.success('Email sent successfully!');
+                              // Refresh order data to show updated email info
+                              const updated = await getAllOrders();
+                              setOrders(updated);
+                              const refreshed = updated.find(o => o.id === selected.id);
+                              if (refreshed) setSelected(refreshed);
+                            } else {
+                              toast.error(`Failed: ${data.error || 'Unknown error'}`);
+                            }
+                          } catch (err) {
+                            toast.dismiss();
+                            toast.error('Failed to send email');
+                          }
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs border border-[#1f3334] text-gray-400 hover:border-green-500 hover:text-green-400 transition-colors mt-2"
+                      >
+                        <Send className="w-3 h-3" />
+                        Resend Email
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}
