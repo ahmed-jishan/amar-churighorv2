@@ -146,7 +146,7 @@ export default function HeroCarousel() {
   // Loading state
   if (loading) {
     return (
-      <div className="relative w-full overflow-hidden rounded-2xl shadow-xl border border-[#1f3334] h-[400px] md:h-[520px] bg-[#0b2a2b] flex items-center justify-center">
+      <div className="relative w-full overflow-hidden rounded-2xl shadow-xl border border-[#1f3334] h-[300px] sm:h-[400px] md:h-[520px] bg-[#0b2a2b] flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#d7ffa4] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -171,7 +171,7 @@ export default function HeroCarousel() {
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-2xl shadow-xl border border-[#1f3334] h-[400px] md:h-[520px]"
+      className="relative w-full overflow-hidden rounded-2xl shadow-xl border border-[#1f3334] h-[300px] sm:h-[400px] md:h-[520px]"
       onMouseEnter={pauseAutoplay}
       onMouseLeave={resumeAutoplay}
     >
@@ -205,7 +205,7 @@ export default function HeroCarousel() {
             }}
           />
           <div
-            className="absolute inset-0 flex items-end pb-12 px-8 md:px-16"
+            className="absolute inset-0 flex items-end pb-8 sm:pb-12 px-4 sm:px-8 md:px-16"
             style={{
               background: `linear-gradient(to top, rgba(0,0,0,${(slide.overlayOpacity ?? 50) / 100}) 0%, rgba(0,0,0,${((slide.overlayOpacity ?? 50) - 20) / 100}) 50%, transparent 100%)`,
               textAlign: slide.textAlign || 'left',
@@ -214,33 +214,33 @@ export default function HeroCarousel() {
             <div className={`w-full ${contentWidthClass} ${slide.textAlign === 'center' ? 'mx-auto' : slide.textAlign === 'right' ? 'ml-auto' : ''}`}>
               <motion.h2
                 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
-                className="text-3xl md:text-6xl font-bold text-white mb-3"
+                className="text-xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-2 md:mb-3 leading-tight"
               >
                 {slide.title}
               </motion.h2>
               <motion.p
                 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
-                className="text-lg md:text-xl text-white/80 mb-2"
+                className="text-sm sm:text-lg md:text-xl text-white/80 mb-1 md:mb-2"
               >
                 {slide.subtitle}
               </motion.p>
               {slide.description && (
                 <motion.p
                   initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}
-                  className="text-base text-white/60 mb-6 max-w-xl"
+                  className="text-xs sm:text-sm md:text-base text-white/60 mb-4 md:mb-6 max-w-xl"
                 >
                   {slide.description}
                 </motion.p>
               )}
               <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
-                <div className="flex gap-3 flex-wrap" style={{ justifyContent: slide.textAlign === 'center' ? 'center' : slide.textAlign === 'right' ? 'flex-end' : 'flex-start' }}>
+                <div className="flex gap-2 md:gap-3 flex-wrap" style={{ justifyContent: slide.textAlign === 'center' ? 'center' : slide.textAlign === 'right' ? 'flex-end' : 'flex-start' }}>
                   <Link href={slide.buttonLink || '/products'}
-                    className="inline-block bg-[#d7ffa4] text-[#1a1a1a] px-7 py-3 rounded-xl font-semibold border-2 border-[#1a1a1a] shadow-[3px_3px_0px_#1a1a1a] hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_#1a1a1a] transition-all">
+                    className="inline-block bg-[#d7ffa4] text-[#1a1a1a] px-4 sm:px-7 py-2 sm:py-3 rounded-xl font-semibold border-2 border-[#1a1a1a] shadow-[2px_2px_0px_#1a1a1a] sm:shadow-[3px_3px_0px_#1a1a1a] hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#1a1a1a] sm:hover:shadow-[5px_5px_0px_#1a1a1a] transition-all text-xs sm:text-base">
                     {slide.buttonText}
                   </Link>
                   {slide.secondaryButtonText && (
                     <Link href={slide.secondaryButtonLink || '#'}
-                      className="inline-block bg-white/10 backdrop-blur-sm text-white px-7 py-3 rounded-xl font-semibold border-2 border-white/30 hover:bg-white/20 hover:-translate-y-0.5 transition-all">
+                      className="inline-block bg-white/10 backdrop-blur-sm text-white px-4 sm:px-7 py-2 sm:py-3 rounded-xl font-semibold border-2 border-white/30 hover:bg-white/20 hover:-translate-y-0.5 transition-all text-xs sm:text-base">
                       {slide.secondaryButtonText}
                     </Link>
                   )}

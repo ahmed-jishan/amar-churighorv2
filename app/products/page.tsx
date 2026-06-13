@@ -35,11 +35,11 @@ export default function ProductsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-8">
-        <div className="flex gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8">
+        <div className="flex gap-2 flex-wrap w-full sm:w-auto">
           {[{ id: 'all', name: 'All', slug: 'all' } as ProductCategory, ...categories].map(cat => (
             <button key={cat.id} onClick={() => setActiveCategory(cat.name)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
+              className={`px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium border transition-all whitespace-nowrap ${
                 activeCategory === cat.name
                   ? 'bg-[#d7ffa4] text-[#1a1a1a] border-[#1a1a1a] dark:border-[#c9a96e]'
                   : 'border-[#1f3334] hover:border-green-500 text-gray-600 dark:text-gray-400'
@@ -49,10 +49,10 @@ export default function ProductsPage() {
             </button>
           ))}
         </div>
-        <div className="ml-auto flex items-center gap-2 text-sm">
-          <SlidersHorizontal className="w-4 h-4 text-gray-400" />
+        <div className="sm:ml-auto flex items-center gap-2 text-sm w-full sm:w-auto">
+          <SlidersHorizontal className="w-4 h-4 text-gray-400 shrink-0" />
           <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}
-            className="bg-transparent border border-[#1f3334] rounded-lg px-3 py-1.5 text-sm outline-none">
+            className="flex-1 sm:flex-none bg-transparent border border-[#1f3334] rounded-lg px-3 py-1.5 text-sm outline-none">
             <option value="newest">Newest</option>
             <option value="price_asc">Price: Low to High</option>
             <option value="price_desc">Price: High to Low</option>
@@ -66,7 +66,7 @@ export default function ProductsPage() {
           <p className="text-gray-500">No products found in this category.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {loading
             ? Array(8).fill(0).map((_, i) => <ProductSkeleton key={i} />)
             : filtered.map(p => <ProductCard key={p.id} product={p} />)

@@ -82,32 +82,32 @@ export default function Footer() {
 
   return (
     <footer className="bg-white dark:bg-[#030f10] border-t border-gray-200 dark:border-[#1f3334] mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Flex container: brand and sections side by side on desktop, stacked on mobile */}
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-12">
           {/* Brand Column — separate div, always stays on the left */}
           <div className="lg:w-72 shrink-0">
-            <h3 className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-400 bg-clip-text text-transparent mb-3">
+            <h3 className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-400 bg-clip-text text-transparent mb-2">
               Amar Churighor
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs">
               Your trusted destination for premium products in Bangladesh.
             </p>
           </div>
 
-          {/* Sections Grid — sits beside brand, supports up to 4 columns without wrapping below brand */}
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {/* Sections Grid — sits beside brand, supports up to 4 columns */}
+          <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
             {displaySections.map(section => (
               <div key={section.id}>
-                <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-3 uppercase tracking-wide">
+                <h4 className="font-semibold text-xs md:text-sm text-gray-900 dark:text-white mb-3 uppercase tracking-wide">
                   {section.title}
                 </h4>
-                <ul className="space-y-2.5">
+                <ul className="space-y-2 md:space-y-2.5">
                   {section.links.map((link, i) => (
                     <li key={i}>
                       <Link
                         href={link.url}
-                        className="text-sm text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors duration-200"
+                        className="text-xs md:text-sm text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors duration-200"
                         {...(link.openInNewTab
                           ? { target: '_blank', rel: 'noopener noreferrer' }
                           : {})}
@@ -123,7 +123,7 @@ export default function Footer() {
         </div>
 
         {/* Copyright */}
-        <div className="border-t border-gray-200 dark:border-[#1f3334] mt-10 pt-6 text-sm text-gray-400 text-center">
+        <div className="border-t border-gray-200 dark:border-[#1f3334] mt-8 md:mt-10 pt-6 text-xs md:text-sm text-gray-400 text-center">
           &copy; {currentYear} Amar Churighor. All rights reserved.
         </div>
       </div>

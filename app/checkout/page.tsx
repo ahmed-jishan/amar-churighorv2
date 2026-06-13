@@ -85,14 +85,14 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Checkout</h1>
+      <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Checkout</h1>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
           {/* Form */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
             {/* Personal Info */}
-            <div className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-6">
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2"><User className="w-5 h-5" />Personal Information</h2>
+            <div className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-4 md:p-6">
+              <h2 className="font-bold text-base md:text-lg mb-4 flex items-center gap-2"><User className="w-4 h-5 md:w-5 h-5" />Personal Information</h2>
               <div className="grid gap-4">
                 <div>
                   <input {...register('fullName')} placeholder="Full Name *"
@@ -104,7 +104,7 @@ export default function CheckoutPage() {
                     className="w-full p-3 border border-[#1f3334] rounded-xl dark:bg-[#051a1b] outline-none focus:border-green-500 transition" />
                   {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <input {...register('phone')} placeholder="Phone Number *"
                       className="w-full p-3 border border-[#1f3334] rounded-xl dark:bg-[#051a1b] outline-none focus:border-green-500 transition" />
@@ -120,15 +120,15 @@ export default function CheckoutPage() {
             </div>
 
             {/* Address */}
-            <div className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-6">
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2"><MapPin className="w-5 h-5" />Delivery Address</h2>
+            <div className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-4 md:p-6">
+              <h2 className="font-bold text-base md:text-lg mb-4 flex items-center gap-2"><MapPin className="w-5 h-5" />Delivery Address</h2>
               <div className="grid gap-4">
                 <div>
                   <textarea {...register('address')} rows={3} placeholder="Full Address (House, Road, Block) *"
                     className="w-full p-3 border border-[#1f3334] rounded-xl dark:bg-[#051a1b] outline-none focus:border-green-500 transition resize-none" />
                   {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address.message}</p>}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <select {...register('district')}
                       className="w-full p-3 border border-[#1f3334] rounded-xl dark:bg-[#051a1b] outline-none focus:border-green-500 transition">
@@ -147,8 +147,8 @@ export default function CheckoutPage() {
             </div>
 
             {/* Notes */}
-            <div className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-6">
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2"><FileText className="w-5 h-5" />Order Notes</h2>
+            <div className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-4 md:p-6">
+              <h2 className="font-bold text-base md:text-lg mb-4 flex items-center gap-2"><FileText className="w-5 h-5" />Order Notes</h2>
               <textarea {...register('notes')} rows={3} placeholder="Any special instructions? (optional)"
                 className="w-full p-3 border border-[#1f3334] rounded-xl dark:bg-[#051a1b] outline-none focus:border-green-500 transition resize-none" />
             </div>
@@ -156,8 +156,8 @@ export default function CheckoutPage() {
 
           {/* Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-6 sticky top-24">
-              <h2 className="font-bold text-lg mb-4">Order Summary</h2>
+            <div className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-4 md:p-6 sticky top-24">
+              <h2 className="font-bold text-base md:text-lg mb-4">Order Summary</h2>
               <div className="space-y-3 mb-4">
                 {cart.map(item => (
                   <div key={item.id} className="flex gap-3 items-center">
@@ -168,7 +168,7 @@ export default function CheckoutPage() {
                       <p className="text-xs font-medium truncate">{item.name}</p>
                       <p className="text-xs text-gray-400">×{item.quantity}</p>
                     </div>
-                    <p className="text-sm font-bold text-green-600">{formatPrice((item.discountPrice ?? item.price) * item.quantity)}</p>
+                    <p className="text-sm font-bold text-green-600 shrink-0">{formatPrice((item.discountPrice ?? item.price) * item.quantity)}</p>
                   </div>
                 ))}
               </div>

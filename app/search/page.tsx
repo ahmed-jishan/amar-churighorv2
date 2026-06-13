@@ -20,18 +20,18 @@ function SearchResults() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-2">Search Results</h1>
-      <p className="text-gray-500 mb-8">
+      <h1 className="text-2xl md:text-3xl font-bold mb-2">Search Results</h1>
+      <p className="text-gray-500 mb-6 md:mb-8">
         {q ? (loading ? 'Searching...' : `${results.length} result${results.length !== 1 ? 's' : ''} for "${q}"`) : 'Enter a search term'}
       </p>
       {!loading && results.length === 0 && q && (
-        <div className="text-center py-20">
-          <p className="text-4xl mb-3">🔍</p>
-          <p className="text-xl font-semibold">No results found</p>
-          <p className="text-gray-500 mt-2">Try different keywords</p>
+        <div className="text-center py-16 md:py-20">
+          <p className="text-3xl md:text-4xl mb-3">🔍</p>
+          <p className="text-lg md:text-xl font-semibold">No results found</p>
+          <p className="text-gray-500 mt-2 text-sm">Try different keywords</p>
         </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
         {loading ? Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />) : results.map(p => <ProductCard key={p.id} product={p} />)}
       </div>
     </div>

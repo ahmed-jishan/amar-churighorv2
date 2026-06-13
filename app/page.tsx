@@ -57,18 +57,18 @@ const WHY_US = [
 
 export default function HomePage() {
   return (
-    <div className="space-y-20">
+    <div className="space-y-12 md:space-y-20">
       <HeroCarousel />
 
       {/* Featured */}
       <section>
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
           <div>
-            <h2 className="text-3xl font-bold">Featured Collection</h2>
+            <h2 className="text-2xl md:text-3xl font-bold">Featured Collection</h2>
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Handpicked for you</p>
           </div>
-          <Link href="/products"><NeoButton text="View All"
-            className="bg-white text-black border-black shadow-none hover:shadow-[3px_3px_0px_black]
+          <Link href="/products" className="self-stretch sm:self-auto"><NeoButton text="View All"
+            className="w-full sm:w-auto bg-white text-black border-black shadow-none hover:shadow-[3px_3px_0px_black]
             dark:bg-transparent dark:text-gray-300 dark:border-[#1f3334] dark:hover:border-green-400 dark:hover:text-green-400" /></Link>
         </div>
         <Suspense fallback={<div className="grid grid-cols-1 md:grid-cols-3 gap-4">{Array(3).fill(0).map((_, i) => <ProductSkeleton key={i} />)}</div>}>
@@ -77,18 +77,18 @@ export default function HomePage() {
       </section>
 
       {/* Why Choose Us */}
-      <section className="bg-gray-50 dark:bg-[#0b2a2b]/50 rounded-3xl p-10">
-        <h2 className="text-3xl font-bold text-center mb-2">Why Choose Us</h2>
-        <p className="text-center text-gray-500 mb-10">We make shopping easy and enjoyable</p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="bg-gray-50 dark:bg-[#0b2a2b]/50 rounded-3xl p-6 md:p-10">
+        <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Why Choose Us</h2>
+        <p className="text-center text-gray-500 mb-8 md:mb-10">We make shopping easy and enjoyable</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {WHY_US.map(({ icon: Icon, title, desc }) => (
             <motion.div key={title} whileHover={{ y: -4 }}
-              className="text-center p-6 bg-white dark:bg-[#051a1b] rounded-2xl border border-[#1f3334] shadow-sm">
-              <div className="w-12 h-12 bg-[#d7ffa4] rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Icon className="w-6 h-6 text-[#1a1a1a]" />
+              className="text-center p-4 md:p-6 bg-white dark:bg-[#051a1b] rounded-2xl border border-[#1f3334] shadow-sm">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-[#d7ffa4] rounded-xl flex items-center justify-center mx-auto mb-3 md:mb-4">
+                <Icon className="w-5 h-5 md:w-6 md:h-6 text-[#1a1a1a]" />
               </div>
-              <h3 className="font-semibold mb-1">{title}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{desc}</p>
+              <h3 className="font-semibold text-sm md:text-base mb-1">{title}</h3>
+              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">{desc}</p>
             </motion.div>
           ))}
         </div>
@@ -96,13 +96,13 @@ export default function HomePage() {
 
       {/* Best Sellers */}
       <section>
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
           <div>
-            <h2 className="text-3xl font-bold">Best Sellers</h2>
+            <h2 className="text-2xl md:text-3xl font-bold">Best Sellers</h2>
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Our most loved products</p>
           </div>
-          <Link href="/products"><NeoButton text="See More"
-            className="bg-white text-black border-black shadow-none hover:shadow-[3px_3px_0px_black]
+          <Link href="/products" className="self-stretch sm:self-auto"><NeoButton text="See More"
+            className="w-full sm:w-auto bg-white text-black border-black shadow-none hover:shadow-[3px_3px_0px_black]
             dark:bg-transparent dark:text-gray-300 dark:border-[#1f3334] dark:hover:border-green-400 dark:hover:text-green-400" /></Link>
         </div>
         <Suspense fallback={<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)}</div>}>
@@ -113,7 +113,7 @@ export default function HomePage() {
       {/* Reviews Section */}
       <section>
         <Suspense fallback={
-          <div className="text-center py-12">
+          <div className="text-center py-8 md:py-12">
             <div className="w-8 h-8 border-4 border-[#d7ffa4] border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         }>
@@ -124,7 +124,7 @@ export default function HomePage() {
       {/* FAQ Section */}
       <section>
         <Suspense fallback={
-          <div className="text-center py-12">
+          <div className="text-center py-8 md:py-12">
             <div className="w-8 h-8 border-4 border-[#d7ffa4] border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         }>
@@ -133,14 +133,14 @@ export default function HomePage() {
       </section>
 
       {/* Newsletter */}
-      <section className="bg-[#d7ffa4] dark:bg-[#0f2f30] rounded-3xl p-10 text-center border border-[#1a1a1a] dark:border-[#c9a96e]">
-        <h2 className="text-3xl font-bold text-[#1a1a1a] dark:text-[#e6d3a3] mb-2">Stay in the Loop</h2>
-        <p className="text-[#1a1a1a]/70 dark:text-[#e6d3a3]/70 mb-6">Get notified about new products and exclusive offers.</p>
-        <div className="flex gap-3 max-w-md mx-auto">
+      <section className="bg-[#d7ffa4] dark:bg-[#0f2f30] rounded-3xl p-6 md:p-10 text-center border border-[#1a1a1a] dark:border-[#c9a96e]">
+        <h2 className="text-2xl md:text-3xl font-bold text-[#1a1a1a] dark:text-[#e6d3a3] mb-2">Stay in the Loop</h2>
+        <p className="text-[#1a1a1a]/70 dark:text-[#e6d3a3]/70 mb-6 max-w-sm mx-auto">Get notified about new products and exclusive offers.</p>
+        <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
           <input type="email" placeholder="Your email address"
             className="flex-1 px-4 py-3 rounded-xl border-2 border-[#1a1a1a] dark:border-[#c9a96e] bg-white dark:bg-[#051a1b] outline-none" />
           <NeoButton text="Subscribe"
-            className="bg-[#1a1a1a] text-white border-[#1a1a1a] shadow-[3px_3px_0px_#444]
+            className="w-full sm:w-auto bg-[#1a1a1a] text-white border-[#1a1a1a] shadow-[3px_3px_0px_#444]
             dark:bg-[#c9a96e] dark:text-[#051a1b] dark:border-[#c9a96e] dark:shadow-[3px_3px_0px_#fff3]" />
         </div>
       </section>

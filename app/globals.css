@@ -11,11 +11,26 @@
     --background: 186 68% 6%;
     --foreground: 95 20% 88%;
   }
+  html {
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   body {
     @apply bg-white dark:bg-[#051a1b] text-gray-900 dark:text-gray-100 transition-colors duration-300;
   }
   * {
     @apply scroll-smooth;
+  }
+
+  /* Mobile-friendly touch targets */
+  @media (max-width: 640px) {
+    html {
+      font-size: 16px; /* Prevent iOS zoom on inputs */
+    }
+    input, select, textarea, button {
+      font-size: 16px !important; /* Prevent iOS zoom on focus */
+    }
   }
 }
 
@@ -57,5 +72,35 @@
   @keyframes shine {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
+  }
+
+  /* Responsive text truncation */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Responsive container padding */
+  .container-responsive {
+    @apply px-4 sm:px-6 lg:px-8 mx-auto max-w-7xl;
+  }
+
+  /* Mobile responsive section spacing */
+  .section-spacing {
+    @apply space-y-12 md:space-y-20;
   }
 }
