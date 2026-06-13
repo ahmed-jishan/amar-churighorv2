@@ -47,6 +47,22 @@ export async function getManualBestSellers(): Promise<Product[]> {
 }
 
 /**
+ * Fetch all active products marked as Customer Favorite (isCustomerFavorite = true).
+ */
+export async function getCustomerFavorites(): Promise<Product[]> {
+  const q = query(
+    collection(db, PRODUCTS_COLLECTION),
+    where('isCustomerFavorite', '==', true),
+  );
+  const snap = await getDocs(q);
+  const products = snap.docs
+    .map(d => ({ id: d.id, ...d.data() } as Product))
+    .filter(p => p.isActive);
+  products.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return products;
+}
+
+/**
  * Fetch top performing products by bestSellerScore (auto-calculated).
  * Only returns active products.
  */
@@ -90,11 +106,26 @@ export async function getHybridBestSellers(
   // Step 2: Build exclusion set from manual IDs
   const manualIds = new Set(manual.map(p => p.id));
 
-  // Step 3: Get automatic best sellers, excluding manual ones
+  // Step 3: Get Customer Favorites (also show them here)
+  const favorites = await getCustomerFavorites();
+  favorites.forEach(f => manualIds.add(f.id));
+
+  // Step 4: Get automatic best sellers, excluding manual + favorites IDs
   const auto = await getAutoBestSellers(maxResults, manualIds);
 
-  // Step 4: Combine — manual first, then auto
+  // Step 5: Combine — manual first, then favorites, then auto
   const combined = [...manual];
+
+  // Add favorites that aren't already in manual
+  const remainingAfterManual = maxResults - combined.length;
+  if (remainingAfterManual > 0) {
+    for (const fav of favorites) {
+      if (!combined.find(p => p.id === fav.id)) {
+        combined.push(fav);
+        if (combined.length >= maxResults) break;
+      }
+    }
+  }
 
   // Fill remaining slots with auto best sellers
   const remainingSlots = maxResults - combined.length;
@@ -102,9 +133,18 @@ export async function getHybridBestSellers(
     combined.push(...auto.slice(0, remainingSlots));
   }
 
-  // Step 5: If combined is empty (new store fallback), return manual only
+  // Step 6: If combined is empty (new store fallback), return recent active products
   if (combined.length === 0) {
-    return manual.slice(0, maxResults);
+    // Fallback: return most recent active products so the section isn't empty
+    const recentQ = query(
+      collection(db, PRODUCTS_COLLECTION),
+      where('isActive', '==', true),
+      orderBy('createdAt', 'desc'),
+      limit(maxResults)
+    );
+    const recentSnap = await getDocs(recentQ);
+    const recentProducts = recentSnap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
+    return recentProducts.slice(0, maxResults);
   }
 
   return combined.slice(0, maxResults);

@@ -1,11 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { getActiveFAQs } from '@/lib/firebase/content';
-import { FaqItem } from '@/types';
+import { FaqItem, FAQ_CATEGORIES } from '@/types';
 import { ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const FAQ_CATEGORIES = ['All', 'Delivery', 'Returns', 'Payment', 'Products', 'General'] as const;
 
 export default function FAQSection() {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);

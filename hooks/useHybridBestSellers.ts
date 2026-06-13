@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { Product } from '@/types';
-import { getHybridBestSellers } from '@/lib/bestSellerEngine';
+import { getHybridBestSellers, getCustomerFavorites } from '@/lib/bestSellerEngine';
 
 interface UseHybridBestSellersOptions {
   maxResults?: number;

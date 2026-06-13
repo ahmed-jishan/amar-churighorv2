@@ -7,10 +7,14 @@ import {
   deleteFooterSection,
   reorderFooterSections,
 } from '@/lib/firebase/footer';
+import { getFooterConfig, saveFooterConfig, FooterConfig, SocialLink, PaymentMethod } from '@/lib/firebase/footerConfig';
+import { uploadImage } from '@/lib/cloudinary';
 import { FooterSection, FooterLink } from '@/types';
-import { Plus, Pencil, Trash2, X, GripVertical, Eye, EyeOff, ExternalLink } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, GripVertical, Eye, EyeOff, ExternalLink, Settings, Upload, Save, DollarSign, CreditCard } from 'lucide-react';
 import NeoButton from '@/components/ui/NeoButton';
 import toast from 'react-hot-toast';
+
+type AdminFooterTab = 'sections' | 'settings';
 
 /** Default empty link for the form */
 const EMPTY_LINK: FooterLink = { label: '', url: '', open_in_new_tab: false };
@@ -23,7 +27,22 @@ const DEFAULT_FORM: Omit<FooterSection, 'id' | 'createdAt' | 'updatedAt'> = {
   sort_order: 0,
 };
 
+const PAYMENT_METHOD_IDS = [
+  { id: 'cod', label: 'Cash on Delivery', icon: DollarSign },
+  { id: 'bkash', label: 'bKash', icon: CreditCard },
+  { id: 'nagad', label: 'Nagad', icon: CreditCard },
+  { id: 'rocket', label: 'Rocket', icon: CreditCard },
+];
+
+const SOCIAL_PLATFORMS = [
+  { platform: 'facebook', icon: 'facebook', label: 'Facebook' },
+  { platform: 'instagram', icon: 'instagram', label: 'Instagram' },
+  { platform: 'whatsapp', icon: 'message-circle', label: 'WhatsApp' },
+  { platform: 'youtube', icon: 'youtube', label: 'YouTube' },
+];
+
 export default function AdminFooterPage() {
+  const [activeTab, setActiveTab] = useState<AdminFooterTab>('sections');
   const [sections, setSections] = useState<FooterSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -33,12 +52,20 @@ export default function AdminFooterPage() {
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState(DEFAULT_FORM);
 
-  useEffect(() => { loadSections(); }, []);
+  // Footer Config State
+  const [config, setConfig] = useState<FooterConfig | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  async function loadSections() {
+  useEffect(() => { loadData(); }, []);
+
+  async function loadData() {
     setLoading(true);
-    const data = await getAllFooterSections();
+    const [data, cfg] = await Promise.all([
+      getAllFooterSections(),
+      getFooterConfig(),
+    ]);
     setSections(data);
+    setConfig(cfg);
     setLoading(false);
   }
 
@@ -106,7 +133,7 @@ export default function AdminFooterPage() {
         toast.success('Footer section created!');
       }
 
-      await loadSections();
+      await loadData();
       setShowForm(false);
       resetForm();
     } catch {
@@ -150,7 +177,7 @@ export default function AdminFooterPage() {
       await reorderFooterSections(reordered.map(s => s.id));
     } catch {
       toast.error('Error reordering');
-      await loadSections();
+      await loadData();
     }
   }
 
@@ -164,8 +191,69 @@ export default function AdminFooterPage() {
       await reorderFooterSections(reordered.map(s => s.id));
     } catch {
       toast.error('Error reordering');
-      await loadSections();
+      await loadData();
     }
+  }
+
+  // ─── Footer Config Handlers ────────────────────────────────────
+
+  async function handleBrandLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const url = await uploadImage(file);
+      setConfig(prev => prev ? { ...prev, brandLogo: url } : null);
+      toast.success('Brand logo uploaded to Cloudinary!');
+    } catch {
+      toast.error('Logo upload failed');
+    }
+    setUploadingLogo(false);
+  }
+
+  function updateSocialLink(index: number, field: keyof SocialLink, value: string | boolean) {
+    if (!config) return;
+    const updated = [...config.socialLinksArray];
+    updated[index] = { ...updated[index], [field]: value };
+    setConfig({ ...config, socialLinksArray: updated });
+  }
+
+  function addSocialLink() {
+    if (!config) return;
+    setConfig({
+      ...config,
+      socialLinksArray: [
+        ...config.socialLinksArray,
+        { platform: '', url: '', icon: 'facebook', isActive: true },
+      ],
+    });
+  }
+
+  function removeSocialLink(index: number) {
+    if (!config) return;
+    setConfig({
+      ...config,
+      socialLinksArray: config.socialLinksArray.filter((_, i) => i !== index),
+    });
+  }
+
+  function updatePaymentMethod(index: number, field: keyof PaymentMethod, value: string | boolean) {
+    if (!config) return;
+    const updated = [...config.paymentMethodsArray];
+    updated[index] = { ...updated[index], [field]: value };
+    setConfig({ ...config, paymentMethodsArray: updated });
+  }
+
+  async function handleSaveFooterConfig() {
+    if (!config) return;
+    setSaving(true);
+    try {
+      await saveFooterConfig(config);
+      toast.success('Footer settings saved!');
+    } catch {
+      toast.error('Error saving footer settings');
+    }
+    setSaving(false);
   }
 
   // ─── Render ────────────────────────────────────────────────────
@@ -182,126 +270,308 @@ export default function AdminFooterPage() {
     <div>
       <h1 className="text-3xl font-bold text-white mb-8">Footer Manager</h1>
 
-      <div className="bg-[#0b2a2b] rounded-2xl border border-[#1f3334] overflow-hidden">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-5 border-b border-[#1f3334]">
-          <div>
-            <h2 className="font-bold text-white">Footer Sections</h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {sections.length} section{sections.length !== 1 ? 's' : ''} &middot;{' '}
-              {sections.filter(s => s.is_visible).length} visible
-            </p>
-          </div>
-          <NeoButton
-            text="Add Section"
-            icon={<Plus className="w-4 h-4" />}
-            onClick={() => { resetForm(); setShowForm(true); }}
-            className="bg-[#d7ffa4] text-[#1a1a1a] border-[#1a1a1a] shadow-[3px_3px_0px_#1a1a1a] text-sm py-2 px-4"
-          />
-        </div>
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        <button onClick={() => setActiveTab('sections')}
+          className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition ${
+            activeTab === 'sections' ? 'bg-[#d7ffa4] text-[#1a1a1a]' : 'bg-[#0b2a2b] text-gray-400 hover:text-white border border-[#1f3334]'
+          }`}>
+          <Eye className="w-4 h-4" /> Footer Sections
+        </button>
+        <button onClick={() => setActiveTab('settings')}
+          className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition ${
+            activeTab === 'settings' ? 'bg-[#d7ffa4] text-[#1a1a1a]' : 'bg-[#0b2a2b] text-gray-400 hover:text-white border border-[#1f3334]'
+          }`}>
+          <Settings className="w-4 h-4" /> Footer Settings
+        </button>
+      </div>
 
-        {/* List */}
-        <div className="divide-y divide-[#1f3334]/50">
-          {sections.length === 0 && (
-            <div className="text-center py-12 text-gray-500 text-sm">
-              No footer sections yet. Add your first section to display content in the footer.
+      {/* ══════════════════════════════════════════════ */}
+      {/* SECTIONS TAB */}
+      {/* ══════════════════════════════════════════════ */}
+      {activeTab === 'sections' && (
+        <div className="bg-[#0b2a2b] rounded-2xl border border-[#1f3334] overflow-hidden">
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-5 border-b border-[#1f3334]">
+            <div>
+              <h2 className="font-bold text-white">Footer Sections</h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {sections.length} section{sections.length !== 1 ? 's' : ''} &middot;{' '}
+                {sections.filter(s => s.is_visible).length} visible
+              </p>
             </div>
-          )}
+            <NeoButton
+              text="Add Section"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={() => { resetForm(); setShowForm(true); }}
+              className="bg-[#d7ffa4] text-[#1a1a1a] border-[#1a1a1a] shadow-[3px_3px_0px_#1a1a1a] text-sm py-2 px-4"
+            />
+          </div>
 
-          {sections.map((section, index) => (
-            <div key={section.id} className="p-5 hover:bg-[#051a1b]/40 transition">
-              <div className="flex items-start gap-4">
-                {/* Reorder buttons */}
-                <div className="flex flex-col gap-0.5 pt-1">
-                  <button
-                    onClick={() => moveUp(index)}
-                    disabled={index === 0}
-                    className={`text-xs leading-none ${index === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:text-white'} text-gray-500`}
-                  >
-                    ▲
-                  </button>
-                  <span className="text-xs text-gray-500 text-center">{section.sort_order}</span>
-                  <button
-                    onClick={() => moveDown(index)}
-                    disabled={index >= sections.length - 1}
-                    className={`text-xs leading-none ${index >= sections.length - 1 ? 'opacity-20 cursor-not-allowed' : 'hover:text-white'} text-gray-500`}
-                  >
-                    ▼
-                  </button>
-                </div>
+          {/* List */}
+          <div className="divide-y divide-[#1f3334]/50">
+            {sections.length === 0 && (
+              <div className="text-center py-12 text-gray-500 text-sm">
+                No footer sections yet. Add your first section to display content in the footer.
+              </div>
+            )}
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-white font-medium text-sm">{section.title}</h3>
+            {sections.map((section, index) => (
+              <div key={section.id} className="p-5 hover:bg-[#051a1b]/40 transition">
+                <div className="flex items-start gap-4">
+                  {/* Reorder buttons */}
+                  <div className="flex flex-col gap-0.5 pt-1">
                     <button
-                      onClick={() => toggleVisibility(section)}
-                      className={`p-1 rounded-lg transition ${
-                        section.is_visible
-                          ? 'text-green-400 hover:bg-green-900/20'
-                          : 'text-gray-500 hover:bg-[#1f3334]'
-                      }`}
-                      title={section.is_visible ? 'Visible (click to hide)' : 'Hidden (click to show)'}
+                      onClick={() => moveUp(index)}
+                      disabled={index === 0}
+                      className={`text-xs leading-none ${index === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:text-white'} text-gray-500`}
                     >
-                      {section.is_visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                      ▲
                     </button>
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                        section.is_visible
-                          ? 'bg-green-500/15 text-green-400'
-                          : 'bg-gray-500/15 text-gray-400'
-                      }`}
+                    <span className="text-xs text-gray-500 text-center">{section.sort_order}</span>
+                    <button
+                      onClick={() => moveDown(index)}
+                      disabled={index >= sections.length - 1}
+                      className={`text-xs leading-none ${index >= sections.length - 1 ? 'opacity-20 cursor-not-allowed' : 'hover:text-white'} text-gray-500`}
                     >
-                      {section.is_visible ? 'Visible' : 'Hidden'}
-                    </span>
-                    <span className="text-[10px] text-gray-600">
-                      {section.links.length} link{section.links.length !== 1 ? 's' : ''}
-                    </span>
+                      ▼
+                    </button>
                   </div>
 
-                  {/* Links preview */}
-                  {section.links.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {section.links.slice(0, 4).map((link, i) => (
-                        <span
-                          key={i}
-                          className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-[#1f3334] rounded-md text-gray-400"
-                        >
-                          {link.label}
-                          {link.open_in_new_tab && <ExternalLink className="w-2.5 h-2.5" />}
-                        </span>
-                      ))}
-                      {section.links.length > 4 && (
-                        <span className="text-xs text-gray-600 px-1 self-center">
-                          +{section.links.length - 4} more
-                        </span>
-                      )}
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-white font-medium text-sm">{section.title}</h3>
+                      <button
+                        onClick={() => toggleVisibility(section)}
+                        className={`p-1 rounded-lg transition ${
+                          section.is_visible
+                            ? 'text-green-400 hover:bg-green-900/20'
+                            : 'text-gray-500 hover:bg-[#1f3334]'
+                        }`}
+                        title={section.is_visible ? 'Visible (click to hide)' : 'Hidden (click to show)'}
+                      >
+                        {section.is_visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                      </button>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                          section.is_visible
+                            ? 'bg-green-500/15 text-green-400'
+                            : 'bg-gray-500/15 text-gray-400'
+                        }`}
+                      >
+                        {section.is_visible ? 'Visible' : 'Hidden'}
+                      </span>
+                      <span className="text-[10px] text-gray-600">
+                        {section.links.length} link{section.links.length !== 1 ? 's' : ''}
+                      </span>
                     </div>
-                  )}
-                </div>
 
-                {/* Actions */}
-                <div className="flex gap-1 shrink-0">
-                  <button
-                    onClick={() => openEdit(section)}
-                    className="p-1.5 hover:bg-[#1f3334] rounded-lg text-gray-400 hover:text-blue-400 transition"
-                    title="Edit"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(section)}
-                    className="p-1.5 hover:bg-red-900/20 rounded-lg text-gray-400 hover:text-red-400 transition"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    {/* Links preview */}
+                    {section.links.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {section.links.slice(0, 4).map((link, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-[#1f3334] rounded-md text-gray-400"
+                          >
+                            {link.label}
+                            {link.open_in_new_tab && <ExternalLink className="w-2.5 h-2.5" />}
+                          </span>
+                        ))}
+                        {section.links.length > 4 && (
+                          <span className="text-xs text-gray-600 px-1 self-center">
+                            +{section.links.length - 4} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-1 shrink-0">
+                    <button
+                      onClick={() => openEdit(section)}
+                      className="p-1.5 hover:bg-[#1f3334] rounded-lg text-gray-400 hover:text-blue-400 transition"
+                      title="Edit"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(section)}
+                      className="p-1.5 hover:bg-red-900/20 rounded-lg text-gray-400 hover:text-red-400 transition"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* ══════════════════════════════════════════════ */}
+      {/* FOOTER SETTINGS TAB */}
+      {/* ══════════════════════════════════════════════ */}
+      {activeTab === 'settings' && config && (
+        <div className="bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-6 max-w-3xl">
+          <h2 className="font-bold text-white mb-5 flex items-center gap-2">
+            <Settings className="w-5 h-5 text-[#d7ffa4]" /> Footer Brand & Social Settings
+          </h2>
+
+          <div className="space-y-6">
+            {/* Brand Logo */}
+            <div>
+              <label className="block text-xs text-gray-500 uppercase mb-2">Brand Logo</label>
+              {config.brandLogo ? (
+                <div className="relative inline-block mb-3">
+                  <img src={config.brandLogo} alt="Brand Logo" className="h-16 object-contain rounded-lg border border-[#1f3334]" />
+                  <button
+                    onClick={() => setConfig(prev => prev ? { ...prev, brandLogo: '' } : null)}
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </button>
+                </div>
+              ) : (
+                <label className="inline-flex items-center gap-2 px-4 py-3 border-2 border-dashed border-[#1f3334] rounded-xl cursor-pointer hover:border-green-500 transition mb-3">
+                  {uploadingLogo ? (
+                    <span className="text-xs text-green-400 animate-pulse">Uploading...</span>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-400">Upload Brand Logo</span>
+                    </>
+                  )}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleBrandLogoUpload} />
+                </label>
+              )}
+              <p className="text-[10px] text-gray-500">Upload your brand logo. Will be displayed in footer. Uses Cloudinary.</p>
+            </div>
+
+            {/* Tagline */}
+            <div>
+              <label className="block text-xs text-gray-500 uppercase mb-1">Tagline</label>
+              <input
+                value={config.tagline}
+                onChange={e => setConfig(prev => prev ? { ...prev, tagline: e.target.value } : null)}
+                placeholder="Your trusted jewelry destination"
+                className="w-full p-3 bg-[#051a1b] border border-[#1f3334] rounded-xl text-white text-sm outline-none focus:border-green-500"
+              />
+            </div>
+
+            {/* Copyright Text */}
+            <div>
+              <label className="block text-xs text-gray-500 uppercase mb-1">Copyright Text</label>
+              <input
+                value={config.copyrightText}
+                onChange={e => setConfig(prev => prev ? { ...prev, copyrightText: e.target.value } : null)}
+                placeholder="All rights reserved."
+                className="w-full p-3 bg-[#051a1b] border border-[#1f3334] rounded-xl text-white text-sm outline-none focus:border-green-500"
+              />
+            </div>
+
+            {/* Social Links */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs text-gray-500 uppercase">Social Links</label>
+                <button onClick={addSocialLink} className="text-xs text-green-400 hover:text-green-300 transition flex items-center gap-1">
+                  <Plus className="w-3 h-3" /> Add Social Link
+                </button>
+              </div>
+              <div className="space-y-3">
+                {config.socialLinksArray.map((social, index) => (
+                  <div key={index} className="bg-[#051a1b] rounded-xl border border-[#1f3334] p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-gray-600 uppercase">Link #{index + 1}</span>
+                      <button onClick={() => removeSocialLink(index)} className="text-red-400 hover:text-red-300 p-0.5">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] text-gray-600 uppercase mb-0.5">Platform</label>
+                        <select
+                          value={social.platform}
+                          onChange={e => updateSocialLink(index, 'platform', e.target.value)}
+                          className="w-full p-2 bg-[#0b2a2b] border border-[#1f3334] rounded-lg text-white text-sm outline-none focus:border-green-500"
+                        >
+                          {SOCIAL_PLATFORMS.map(p => (
+                            <option key={p.platform} value={p.platform}>{p.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-600 uppercase mb-0.5">Icon</label>
+                        <select
+                          value={social.icon}
+                          onChange={e => updateSocialLink(index, 'icon', e.target.value)}
+                          className="w-full p-2 bg-[#0b2a2b] border border-[#1f3334] rounded-lg text-white text-sm outline-none focus:border-green-500"
+                        >
+                          <option value="facebook">Facebook</option>
+                          <option value="instagram">Instagram</option>
+                          <option value="message-circle">WhatsApp</option>
+                          <option value="youtube">YouTube</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-gray-600 uppercase mb-0.5">URL</label>
+                      <input
+                        value={social.url}
+                        onChange={e => updateSocialLink(index, 'url', e.target.value)}
+                        placeholder="https://facebook.com/..."
+                        className="w-full p-2 bg-[#0b2a2b] border border-[#1f3334] rounded-lg text-white text-sm outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={social.isActive}
+                        onChange={e => updateSocialLink(index, 'isActive', e.target.checked)}
+                        className="accent-[#d7ffa4]"
+                      />
+                      Active
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Payment Methods */}
+            <div>
+              <label className="block text-xs text-gray-500 uppercase mb-2">Payment Methods</label>
+              <div className="space-y-2">
+                {config.paymentMethodsArray.map((pm, index) => (
+                  <label key={pm.id} className="flex items-center justify-between gap-3 p-3 bg-[#051a1b] rounded-xl border border-[#1f3334] cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-white font-medium">{pm.label}</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={pm.isActive}
+                      onChange={e => updatePaymentMethod(index, 'isActive', e.target.checked)}
+                      className="accent-[#d7ffa4]"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-4">
+              <NeoButton
+                text={saving ? 'Saving...' : 'Save Footer Settings'}
+                icon={<Save className="w-4 h-4" />}
+                onClick={handleSaveFooterConfig}
+                disabled={saving}
+                className="bg-[#d7ffa4] text-[#1a1a1a] border-[#1a1a1a] shadow-[3px_3px_0px_#1a1a1a]"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ════════════════════════════════════════════════════════════ */}
       {/* ADD / EDIT FORM MODAL                                       */}

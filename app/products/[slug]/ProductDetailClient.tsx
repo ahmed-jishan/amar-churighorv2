@@ -117,7 +117,6 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
                 <Star key={i} className={`w-3.5 h-3.5 ${i < 4 ? 'fill-[#d7ffa4] text-[#d7ffa4]' : 'text-gray-300'}`} />
               ))}
             </div>
-            <span className="text-xs text-gray-500">(4.5)</span>
           </div>
 
           <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4">{product.description}</p>

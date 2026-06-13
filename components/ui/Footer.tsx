@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { getPublicFooterSections } from '@/lib/firebase/footer';
 import { getFooterConfig, FooterConfig } from '@/lib/firebase/footerConfig';
 import { FooterSection } from '@/types';
-import { Facebook, Instagram, Youtube, MessageCircle } from 'lucide-react';
+import { Facebook, Instagram, Youtube, MessageCircle, CreditCard, DollarSign, Landmark } from 'lucide-react';
 
 interface SectionDisplay {
   id: string;
@@ -46,11 +46,11 @@ const STATIC_SECTIONS: SectionDisplay[] = [
   },
 ];
 
-const PAYMENT_BADGES: Record<string, { label: string; className: string }> = {
-  cod: { label: 'Cash on Delivery', className: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300' },
-  bkash: { label: 'bKash', className: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-300' },
-  nagad: { label: 'Nagad', className: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300' },
-  rocket: { label: 'Rocket', className: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300' },
+const PAYMENT_BADGES: Record<string, { label: string; className: string; icon: any }> = {
+  cod: { label: 'Cash on Delivery', className: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300', icon: DollarSign },
+  bkash: { label: 'bKash', className: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-300', icon: CreditCard },
+  nagad: { label: 'Nagad', className: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300', icon: CreditCard },
+  rocket: { label: 'Rocket', className: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300', icon: Landmark },
 };
 
 const SOCIAL_ICONS: Record<string, { icon: typeof Facebook; color: string }> = {
@@ -58,6 +58,7 @@ const SOCIAL_ICONS: Record<string, { icon: typeof Facebook; color: string }> = {
   instagram: { icon: Instagram, color: 'hover:text-pink-500' },
   whatsapp: { icon: MessageCircle, color: 'hover:text-green-500' },
   youtube: { icon: Youtube, color: 'hover:text-red-500' },
+  'message-circle': { icon: MessageCircle, color: 'hover:text-green-500' },
 };
 
 export default function Footer() {
@@ -95,20 +96,60 @@ export default function Footer() {
   const displaySections = sections ?? [];
   const footerConfig = config;
 
+  // Determine which payment methods to show (use array format if available, else fallback)
+  const paymentMethodsArray = footerConfig?.paymentMethodsArray?.filter(pm => pm.isActive) || [];
+  const paymentMethodsKeys = paymentMethodsArray.length > 0
+    ? paymentMethodsArray.map(pm => pm.id)
+    : (footerConfig?.paymentMethods || ['cod', 'bkash', 'nagad', 'rocket']);
+
+  // Determine which social links to show (use array format if available, else legacy object)
+  const socialLinksArray = footerConfig?.socialLinksArray?.filter(sl => sl.isActive && sl.url) || [];
+  const hasSocialArray = socialLinksArray.length > 0;
+
   return (
     <footer className="bg-white dark:bg-[#030f10] border-t border-gray-200 dark:border-[#1f3334] mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-12">
           {/* Brand Column */}
           <div className="lg:w-72 shrink-0">
-            <h3 className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-400 bg-clip-text text-transparent mb-2">
-              Amar Churighor
-            </h3>
+            {/* Brand Logo */}
+            {footerConfig?.brandLogo ? (
+              <img 
+                src={footerConfig.brandLogo} 
+                alt="Amar Churighor" 
+                className="h-10 md:h-12 object-contain mb-2"
+              />
+            ) : (
+              <h3 className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-400 bg-clip-text text-transparent mb-2">
+                Amar Churighor
+              </h3>
+            )}
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs">
               {footerConfig?.tagline || 'Your trusted jewelry destination'}
             </p>
-            {/* Social Links */}
-            {footerConfig?.socialLinks && (
+            {/* Social Links - Array format */}
+            {hasSocialArray && (
+              <div className="flex gap-2 mt-4">
+                {socialLinksArray.map(social => {
+                  const socialDef = SOCIAL_ICONS[social.icon] || SOCIAL_ICONS[social.platform];
+                  if (!socialDef) return null;
+                  const Icon = socialDef.icon;
+                  return (
+                    <a
+                      key={social.platform}
+                      href={social.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`w-8 h-8 rounded-full bg-gray-100 dark:bg-[#0b2a2b] flex items-center justify-center text-gray-500 dark:text-gray-400 ${socialDef.color} transition-colors`}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+            {/* Social Links - Legacy format (fallback) */}
+            {!hasSocialArray && footerConfig?.socialLinks && (
               <div className="flex gap-2 mt-4">
                 {Object.entries(footerConfig.socialLinks).filter(([, url]) => url).map(([platform, url]) => {
                   const social = SOCIAL_ICONS[platform];
@@ -161,16 +202,18 @@ export default function Footer() {
             &copy; {currentYear} Amar Churighor. {footerConfig?.copyrightText || 'All rights reserved.'}
           </p>
 
-          {/* Payment Badges */}
+          {/* Payment Badges with Circle Icons */}
           <div className="flex flex-wrap justify-center gap-2">
-            {(footerConfig?.paymentMethods || ['cod', 'bkash', 'nagad', 'rocket']).map(method => {
+            {paymentMethodsKeys.map(method => {
               const badge = PAYMENT_BADGES[method];
               if (!badge) return null;
+              const Icon = badge.icon;
               return (
                 <span
                   key={method}
-                  className={`text-[10px] font-semibold px-3 py-1.5 rounded-full ${badge.className}`}
+                  className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-3 py-1.5 rounded-full ${badge.className}`}
                 >
+                  <Icon className="w-3.5 h-3.5" />
                   {badge.label}
                 </span>
               );

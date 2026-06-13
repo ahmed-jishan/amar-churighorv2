@@ -110,6 +110,7 @@ export async function getActiveFAQs(): Promise<FaqItem[]> {
       id: d.id,
       question: data.question || '',
       answer: data.answer || '',
+      category: data.category || '',
       isActive: true,
       sortOrder: data.sortOrder ?? 0,
       createdAt: data.createdAt || '',

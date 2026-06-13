@@ -7,7 +7,7 @@ import {
   getReviewAnimationConfig, saveReviewAnimationConfig,
 } from '@/lib/firebase/content';
 import { uploadImage } from '@/lib/cloudinary';
-import { FaqItem, Review, ReviewAnimationConfig, DEFAULT_REVIEW_ANIMATION_CONFIG, REVIEW_ANIMATION_TYPES, REVIEW_ANIMATION_SPEEDS } from '@/types';
+import { FaqItem, Review, ReviewAnimationConfig, DEFAULT_REVIEW_ANIMATION_CONFIG, REVIEW_ANIMATION_TYPES, REVIEW_ANIMATION_SPEEDS, FAQ_CATEGORY_OPTIONS } from '@/types';
 import { Plus, Pencil, Trash2, X, Star, Upload, Settings, Search, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import NeoButton from '@/components/ui/NeoButton';
 import toast from 'react-hot-toast';
@@ -23,7 +23,7 @@ export default function AdminContentPage() {
   // ── FAQ State ──
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [faqSearch, setFaqSearch] = useState('');
-  const [faqForm, setFaqForm] = useState({ question: '', answer: '', isActive: true, sortOrder: 0 });
+  const [faqForm, setFaqForm] = useState({ question: '', answer: '', category: '', isActive: true, sortOrder: 0 });
   const [editingFaq, setEditingFaq] = useState<string | null>(null);
   const [showFaqForm, setShowFaqForm] = useState(false);
 
@@ -74,10 +74,10 @@ export default function AdminContentPage() {
   function openFaqForm(faq?: FaqItem) {
     if (faq) {
       setEditingFaq(faq.id);
-      setFaqForm({ question: faq.question, answer: faq.answer, isActive: faq.isActive, sortOrder: faq.sortOrder ?? 0 });
+      setFaqForm({ question: faq.question, answer: faq.answer, category: faq.category || '', isActive: faq.isActive, sortOrder: faq.sortOrder ?? 0 });
     } else {
       setEditingFaq(null);
-      setFaqForm({ question: '', answer: '', isActive: true, sortOrder: faqs.length });
+      setFaqForm({ question: '', answer: '', category: '', isActive: true, sortOrder: faqs.length });
     }
     setShowFaqForm(true);
   }
@@ -86,10 +86,11 @@ export default function AdminContentPage() {
     if (!faqForm.question || !faqForm.answer) { toast.error('Fill all fields'); return; }
     setSaving(true);
     try {
+      const data = { question: faqForm.question, answer: faqForm.answer, category: faqForm.category || '', isActive: faqForm.isActive, sortOrder: faqForm.sortOrder };
       if (editingFaq) {
-        await updateFAQ(editingFaq, { question: faqForm.question, answer: faqForm.answer, isActive: faqForm.isActive, sortOrder: faqForm.sortOrder });
+        await updateFAQ(editingFaq, data);
       } else {
-        await saveFAQ({ question: faqForm.question, answer: faqForm.answer, isActive: faqForm.isActive, sortOrder: faqForm.sortOrder });
+        await saveFAQ(data);
       }
       await loadData();
       setShowFaqForm(false);
@@ -306,6 +307,11 @@ export default function AdminContentPage() {
                         }`}>
                         {faq.isActive ? 'Active' : 'Inactive'}
                       </button>
+                      {faq.category && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 shrink-0">
+                          {faq.category}
+                        </span>
+                      )}
                     </div>
                     <p className="text-gray-400 text-xs line-clamp-2">{faq.answer}</p>
                   </div>
@@ -600,6 +606,16 @@ export default function AdminContentPage() {
                 <label className="block text-xs text-gray-500 uppercase mb-1">Answer *</label>
                 <textarea value={faqForm.answer} onChange={e => setFaqForm(f => ({ ...f, answer: e.target.value }))} rows={4}
                   className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 uppercase mb-1">Category</label>
+                <select value={faqForm.category} onChange={e => setFaqForm(f => ({ ...f, category: e.target.value }))}
+                  className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm">
+                  <option value="">Select a category</option>
+                  {FAQ_CATEGORY_OPTIONS.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

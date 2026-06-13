@@ -29,7 +29,7 @@ export default function AdminProductsPage() {
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '', slug: '', category: '', description: '', price: '', discountPrice: '',
-    sku: '', stock: '0', tags: '', isFeatured: false, isBestSeller: false, isActive: true,
+    sku: '', stock: '0', tags: '', isFeatured: false, isBestSeller: false, isCustomerFavorite: false, isActive: true,
   });
   const [newImages, setNewImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -52,7 +52,7 @@ export default function AdminProductsPage() {
 
   function resetForm() {
     setForm({ name: '', slug: '', category: '', description: '', price: '', discountPrice: '',
-      sku: '', stock: '0', tags: '', isFeatured: false, isBestSeller: false, isActive: true });
+      sku: '', stock: '0', tags: '', isFeatured: false, isBestSeller: false, isCustomerFavorite: false, isActive: true });
     setEditing(null);
     setNewImages([]);
     setExistingImages([]);
@@ -67,7 +67,7 @@ export default function AdminProductsPage() {
       price: String(product.price), discountPrice: product.discountPrice ? String(product.discountPrice) : '',
       sku: product.sku, stock: String(product.stock),
       tags: product.tags.join(', '), isFeatured: product.isFeatured,
-      isBestSeller: product.isBestSeller, isActive: product.isActive,
+      isBestSeller: product.isBestSeller, isCustomerFavorite: product.isCustomerFavorite ?? false, isActive: product.isActive,
     });
     setExistingImages(product.images || []);
     setNewImages([]);
@@ -119,6 +119,7 @@ export default function AdminProductsPage() {
         featuredImage: uploaded[0] || '',
         isFeatured: form.isFeatured,
         isBestSeller: form.isBestSeller,
+        isCustomerFavorite: form.isCustomerFavorite,
         isNewArrival: false,
         isActive: form.isActive,
         createdAt: new Date().toISOString(),
@@ -140,6 +141,7 @@ export default function AdminProductsPage() {
           featuredImage: uploaded[0] || '',
           isFeatured: form.isFeatured,
           isBestSeller: form.isBestSeller,
+          isCustomerFavorite: form.isCustomerFavorite,
           isNewArrival: false,
           isActive: form.isActive,
         });
@@ -379,6 +381,10 @@ export default function AdminProductsPage() {
                 <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
                   <input type="checkbox" checked={form.isBestSeller} onChange={e => setForm(f => ({ ...f, isBestSeller: e.target.checked }))}
                     className="accent-[#d7ffa4]" /> Best Seller
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                  <input type="checkbox" checked={form.isCustomerFavorite} onChange={e => setForm(f => ({ ...f, isCustomerFavorite: e.target.checked }))}
+                    className="accent-[#d7ffa4]" /> Customer Favorite
                 </label>
                 <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
                   <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}

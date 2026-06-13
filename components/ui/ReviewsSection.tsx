@@ -52,40 +52,7 @@ export default function ReviewsSection() {
   if (loading) return null;
   if (reviews.length === 0) return null;
 
-  const avgRating = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
-
   const speedVal = config.customSpeed || REVIEW_ANIMATION_SPEEDS[config.speed].value;
-
-  function AggregateBar() {
-    return (
-      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 mb-8 p-6 bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334]">
-        <div className="text-center sm:text-left shrink-0">
-          <span className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">{avgRating.toFixed(1)}</span>
-          <div className="flex gap-0.5 mt-1 justify-center sm:justify-start">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star key={i} className={`w-4 h-4 ${i < Math.round(avgRating) ? 'fill-[#d7ffa4] text-[#d7ffa4]' : 'text-[#1f3334]'}`} />
-            ))}
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Based on {reviews.length} review{reviews.length !== 1 ? 's' : ''}</p>
-        </div>
-        <div className="flex-1 w-full space-y-1.5">
-          {[5, 4, 3, 2, 1].map(star => {
-            const count = reviews.filter(r => r.rating === star).length;
-            const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
-            return (
-              <div key={star} className="flex items-center gap-2 text-xs">
-                <span className="text-gray-500 w-3 text-right">{star}</span>
-                <Star className="w-3 h-3 fill-[#d7ffa4] text-[#d7ffa4]" />
-                <div className="flex-1 h-2 bg-[#1f3334] rounded-full overflow-hidden">
-                  <div className="h-full bg-[#d7ffa4] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
 
   // Static grid when animation disabled
   if (!config.enabled) {
@@ -93,7 +60,6 @@ export default function ReviewsSection() {
       <section>
         <h2 className="text-3xl font-bold text-center mb-2">Customer Reviews</h2>
         <p className="text-center text-gray-500 mb-10">What our customers say</p>
-        <AggregateBar />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {reviews.map(review => (
             <ReviewCard key={review.id} review={review} />
@@ -111,7 +77,6 @@ export default function ReviewsSection() {
       <section>
         <h2 className="text-3xl font-bold text-center mb-2">Customer Reviews</h2>
         <p className="text-center text-gray-500 mb-10">What our customers say</p>
-        <AggregateBar />
         <div
           className="relative max-w-2xl mx-auto"
           onMouseEnter={() => config.pauseOnHover && setIsPaused(true)}
@@ -184,7 +149,6 @@ export default function ReviewsSection() {
       <section className="overflow-hidden">
         <h2 className="text-3xl font-bold text-center mb-2">Customer Reviews</h2>
         <p className="text-center text-gray-500 mb-10">What our customers say</p>
-        <AggregateBar />
         <div
           className="relative"
           onMouseEnter={() => config.pauseOnHover && setIsPaused(true)}
@@ -219,7 +183,6 @@ export default function ReviewsSection() {
       <section>
         <h2 className="text-3xl font-bold text-center mb-2">Customer Reviews</h2>
         <p className="text-center text-gray-500 mb-10">What our customers say</p>
-        <AggregateBar />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {reviews.map((review, i) => (
             <motion.div
@@ -246,7 +209,6 @@ export default function ReviewsSection() {
       <section>
         <h2 className="text-3xl font-bold text-center mb-2">Customer Reviews</h2>
         <p className="text-center text-gray-500 mb-10">What our customers say</p>
-        <AggregateBar />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {reviews.map((review, i) => (
             <motion.div
@@ -269,7 +231,6 @@ export default function ReviewsSection() {
       <section>
         <h2 className="text-3xl font-bold text-center mb-2">Customer Reviews</h2>
         <p className="text-center text-gray-500 mb-10">What our customers say</p>
-        <AggregateBar />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {reviews.map((review, i) => (
             <motion.div
@@ -295,7 +256,6 @@ export default function ReviewsSection() {
     <section>
       <h2 className="text-3xl font-bold text-center mb-2">Customer Reviews</h2>
       <p className="text-center text-gray-500 mb-10">What our customers say</p>
-      <AggregateBar />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
         {reviews.map(review => (
           <ReviewCard key={review.id} review={review} />

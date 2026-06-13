@@ -31,6 +31,7 @@ export interface Product {
   featuredImage: string;
   isFeatured: boolean;
   isBestSeller: boolean;
+  isCustomerFavorite?: boolean;
   isNewArrival: boolean;
   isActive: boolean;
   createdAt: string;
@@ -262,6 +263,12 @@ export interface FaqItem {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export type FaqCategory = 'All' | 'Delivery' | 'Returns' | 'Payment' | 'Products' | 'General';
+
+export const FAQ_CATEGORIES: FaqCategory[] = ['All', 'Delivery', 'Returns', 'Payment', 'Products', 'General'];
+
+export const FAQ_CATEGORY_OPTIONS = FAQ_CATEGORIES.filter(c => c !== 'All');
 
 export interface WhyChooseUsItem {
   id: string;
