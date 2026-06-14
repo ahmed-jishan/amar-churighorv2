@@ -539,6 +539,13 @@ export async function getTopProducts(
 
 export async function getRecentSessions(limitCount: number = 100): Promise<VisitorSession[]> {
   try {
+    // If running in browser, use server-side admin API to avoid Firestore rules blocking reads
+    if (typeof window !== 'undefined') {
+      const res = await fetch(`/api/admin/analytics/sessions?limit=${limitCount}`);
+      const json = await res.json();
+      return (json.sessions || []).map((s: any) => ({ id: s.id, ...(s as VisitorSession) }));
+    }
+
     const q = query(
       collection(db, COLLECTIONS.visitorSessions),
       orderBy('sessionStart', 'desc'),
@@ -568,6 +575,12 @@ export async function getSessionsByVisitorId(visitorId: string): Promise<Visitor
 
 export async function getPageViewsBySession(sessionId: string): Promise<PageView[]> {
   try {
+    if (typeof window !== 'undefined') {
+      const res = await fetch(`/api/admin/analytics/pageviews?sessionId=${encodeURIComponent(sessionId)}`);
+      const json = await res.json();
+      return (json.pageViews || []).map((p: any) => ({ id: p.id, ...(p as PageView) }));
+    }
+
     const q = query(
       collection(db, COLLECTIONS.pageViews),
       where('sessionId', '==', sessionId),
@@ -583,6 +596,12 @@ export async function getPageViewsBySession(sessionId: string): Promise<PageView
 
 export async function getProductViewsBySession(sessionId: string): Promise<ProductView[]> {
   try {
+    if (typeof window !== 'undefined') {
+      const res = await fetch(`/api/admin/analytics/productviews?sessionId=${encodeURIComponent(sessionId)}`);
+      const json = await res.json();
+      return (json.productViews || []).map((p: any) => ({ id: p.id, ...(p as ProductView) }));
+    }
+
     const q = query(
       collection(db, COLLECTIONS.productViews),
       where('sessionId', '==', sessionId),

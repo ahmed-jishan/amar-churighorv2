@@ -68,12 +68,33 @@ function getClientIP(request: NextRequest): string {
 
 function maskIP(ip: string): string {
   if (!ip) return '';
+  // If header contains a list, take the first IP
+  if (ip.includes(',')) ip = ip.split(',')[0].trim();
+
+  // IPv4 (mask last octet)
   const ipv4Match = ip.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3})\.\d{1,3}$/);
   if (ipv4Match) return `${ipv4Match[1]}.0`;
+
+  // IPv6 handling
   if (ip.includes(':')) {
-    const parts = ip.split(':');
-    return parts.slice(0, 4).join(':') + '::';
+    // Common loopback forms
+    if (ip === '::1' || ip === '0:0:0:0:0:0:0:1') return '::1';
+
+    // IPv4-mapped IPv6, e.g. ::ffff:127.0.0.1 -> mask as IPv4
+    const v4mapped = ip.match(/::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+    if (v4mapped) {
+      const v4 = v4mapped[1].match(/^(\d{1,3}\.\d{1,3}\.\d{1,3})\.\d{1,3}$/);
+      if (v4) return `${v4[1]}.0`;
+      return '::ffff:0.0.0.0';
+    }
+
+    // Generic IPv6: keep first 2-3 hextets and append '::' (avoid producing '::1::')
+    const parts = ip.split(':').filter(Boolean);
+    const take = Math.min(3, parts.length);
+    if (parts.length === 0) return '::';
+    return parts.slice(0, take).join(':') + '::';
   }
+
   return ip;
 }
 

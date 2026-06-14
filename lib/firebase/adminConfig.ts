@@ -30,8 +30,42 @@ function getAdminApp(): App {
     credential: cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      // Replace \n in private key (Vercel/env issue)
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      // Normalize private key robustly:
+      // - Accept either a raw PEM, a quoted PEM, or a full service-account JSON string
+      // - Handle double-escaped and single-escaped `\n` sequences
+      // - Strip CR characters and surrounding quotes
+      // - Validate presence of PEM header
+      privateKey: (() => {
+        let key = process.env.FIREBASE_PRIVATE_KEY || '';
+
+        // If the env contains a full service account JSON, extract the private_key
+        const trimmed = key.trim();
+        if (trimmed.startsWith('{') && trimmed.includes('private_key')) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (parsed && typeof parsed.private_key === 'string') {
+              key = parsed.private_key;
+            }
+          } catch {
+            // Fall through to normalization below
+          }
+        }
+
+        // Remove surrounding quotes if present
+        if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+          key = key.slice(1, -1);
+        }
+
+        // Convert double-escaped and escaped newlines to real newlines, remove CRs, trim
+        key = key.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r/g, '').trim();
+
+        // Basic validation: must contain PEM header
+        if (!key.includes('-----BEGIN PRIVATE KEY-----') && !key.includes('-----BEGIN ENCRYPTED PRIVATE KEY-----')) {
+          throw new Error('Invalid Firebase private key format. Ensure FIREBASE_PRIVATE_KEY contains a valid PEM (BEGIN PRIVATE KEY).');
+        }
+
+        return key;
+      })(),
     }),
   });
 }
