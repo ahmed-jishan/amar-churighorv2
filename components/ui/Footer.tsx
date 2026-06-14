@@ -235,9 +235,11 @@ export default function Footer() {
               </div>
             )}
 
-            {/* Payment Method Badges — moved under social icons */}
-            <div className="mt-5 flex flex-wrap gap-2">
-              {paymentMethodsKeys.map(method => renderPaymentBadge(method))}
+            {/* Payment Method Badges — premium floating card */}
+            <div className="mt-5">
+              <div className="bg-white/70 dark:bg-[#0b2a2b]/60 backdrop-blur-sm rounded-2xl border border-gray-100 dark:border-[#1f3334]/60 shadow-[0_4px_16px_rgba(0,0,0,0.04),0_1px_4px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.3),0_1px_4px_rgba(0,0,0,0.15)] p-4 flex flex-wrap gap-2">
+                {paymentMethodsKeys.map(method => renderPaymentBadge(method))}
+              </div>
             </div>
           </div>
 
@@ -268,13 +270,13 @@ export default function Footer() {
 
         {/* Bottom Bar — simplified without payment methods */}
         <div className="border-t border-gray-200 dark:border-[#1f3334] mt-8 md:mt-10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs md:text-sm text-gray-400 text-center md:text-left inline-flex items-center gap-1">
+          <p className="text-xs md:text-sm text-gray-400 text-center md:text-left inline-flex items-center gap-0.5">
             <img
               src="/luminnav.png"
               alt=""
-              className="h-[2rem] md:h-[2rem] w-auto object-contain inline-block dark:brightness-0 dark:invert"
+              className="h-[0.75rem] md:h-[0.875rem] w-auto object-contain inline-block dark:brightness-0 dark:invert"
             />
-            {currentYear} Lumin. {footerConfig?.copyrightText || 'All rights reserved.'}
+            {currentYear} Amar Churighor. {footerConfig?.copyrightText || 'All rights reserved.'}
           </p>
           <p className="text-[10px] md:text-xs text-gray-400 text-center">
             Made with ❤️ in Bangladesh
