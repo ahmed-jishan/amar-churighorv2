@@ -99,6 +99,16 @@ function SessionCard({
   const sessionDate = new Date(session.sessionStart).toLocaleString();
   const isActive = session.isActive;
 
+  function formatLocation(s: VisitorSession) {
+    if (s.country) return `${s.country}${s.region ? ` · ${s.region}` : ''}${s.city ? ` · ${s.city}` : ''}`;
+    // treat loopback/local IPs as Localhost
+    const raw = s.ipRaw || s.ip || '';
+    if (raw === '127.0.0.1' || raw === '::1' || raw.startsWith('192.168.') || raw.startsWith('10.') || raw.startsWith('172.')) {
+      return 'Localhost';
+    }
+    return raw || 'N/A';
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -134,12 +144,10 @@ function SessionCard({
               <span className="capitalize">{session.deviceType}</span>
               <span>·</span>
               <span className="capitalize">{session.browser}</span>
-              {session.country && (
-                <>
-                  <span>·</span>
-                  <span>{session.country}{session.city ? `, ${session.city}` : ''}</span>
-                </>
-              )}
+              <>
+                <span>·</span>
+                <span>{formatLocation(session)}</span>
+              </>
             </div>
           </div>
         </div>
@@ -176,12 +184,17 @@ function SessionCard({
                 <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">OS</p>
                 <p className="text-sm text-gray-300 capitalize">{session.os}</p>
               </div>
-              {session.country && (
-                <div className="bg-[#051a1b] rounded-xl p-3">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Location</p>
-                  <p className="text-sm text-gray-300">{session.country}{session.city ? `, ${session.city}` : ''}</p>
-                </div>
-              )}
+              <div className="bg-[#051a1b] rounded-xl p-3">
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Location</p>
+                <p className="text-sm text-gray-300">{formatLocation(session)}</p>
+                {session.lat && session.lon && (
+                  <p className="text-xs text-gray-500 mt-1">Coordinates: {session.lat}, {session.lon}</p>
+                )}
+                {session.timezone && (
+                  <p className="text-xs text-gray-500 mt-1">Timezone: {session.timezone}</p>
+                )}
+                <p className="text-[10px] text-gray-500 mt-2">IP-based location is approximate; street-level addresses cannot be determined reliably from IP.</p>
+              </div>
               <div className="bg-[#051a1b] rounded-xl p-3">
                 <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Visit Count</p>
                 <p className="text-sm text-gray-300">{session.visitCount}</p>

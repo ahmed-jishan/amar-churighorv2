@@ -98,6 +98,29 @@ function maskIP(ip: string): string {
   return ip;
 }
 
+// ─── Helper: Geo lookup (best-effort) ───────────────────────
+async function lookupGeoForIP(ip: string) {
+  try {
+    // Try ip-api.com (free, limited) as a fallback. Returns fields: country, regionName, city, lat, lon
+    const res = await fetch(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,regionName,city,lat,lon,timezone`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && data.status === 'success') {
+      return {
+        country: data.country || null,
+        region: data.regionName || null,
+        city: data.city || null,
+        lat: typeof data.lat === 'number' ? data.lat : null,
+        lon: typeof data.lon === 'number' ? data.lon : null,
+        timezone: data.timezone || null,
+      };
+    }
+  } catch (err) {
+    // silent fail
+  }
+  return null;
+}
+
 // ─── POST /api/track ───────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -105,7 +128,10 @@ export async function POST(req: NextRequest) {
     const db = getAdminDb();
     const body = await req.json();
     const { type } = body;
-    const clientIP = maskIP(getClientIP(req));
+    const rawClientIP = getClientIP(req);
+    const maskedClientIP = maskIP(rawClientIP);
+    // perform best-effort geo lookup using the raw IP (do not store raw IP)
+    const geo = await lookupGeoForIP(rawClientIP);
 
     switch (type) {
       case 'session': {
@@ -113,7 +139,15 @@ export async function POST(req: NextRequest) {
         await db.collection(COLLECTIONS.visitorSessions).add({
           visitorId: body.visitorId ?? 'unknown',
           sessionId: body.sessionId ?? 'unknown',
-          ip: clientIP,
+          ip: maskedClientIP,
+          ipRaw: rawClientIP,
+          geo: geo,
+          country: geo?.country ?? null,
+          region: geo?.region ?? null,
+          city: geo?.city ?? null,
+          lat: geo?.lat ?? null,
+          lon: geo?.lon ?? null,
+          timezone: geo?.timezone ?? null,
           deviceType: body.deviceType ?? 'desktop',
           browser: body.browser ?? 'unknown',
           os: body.os ?? 'unknown',
@@ -166,7 +200,7 @@ export async function POST(req: NextRequest) {
           .get();
         if (!snap.empty) {
           await snap.docs[0].ref.set(
-            { lastActivity: nowISO(), exitPage: body.currentPage ?? '/' },
+            { lastActivity: nowISO(), exitPage: body.currentPage ?? '/', ip: maskedClientIP, ipRaw: rawClientIP, geo: geo, country: geo?.country ?? null, region: geo?.region ?? null, city: geo?.city ?? null, lat: geo?.lat ?? null, lon: geo?.lon ?? null, timezone: geo?.timezone ?? null },
             { merge: true }
           );
         }
@@ -186,7 +220,7 @@ export async function POST(req: NextRequest) {
             ? Math.floor((Date.now() - new Date(data.sessionStart).getTime()) / 1000)
             : 0;
           await snap.docs[0].ref.set(
-            { exitPage: body.exitPage ?? '/', duration, isActive: false, lastActivity: nowISO() },
+            { exitPage: body.exitPage ?? '/', duration, isActive: false, lastActivity: nowISO(), lastIP: maskedClientIP, lastIPRaw: rawClientIP, lastGeo: geo, country: geo?.country ?? null, region: geo?.region ?? null, city: geo?.city ?? null, lat: geo?.lat ?? null, lon: geo?.lon ?? null, timezone: geo?.timezone ?? null },
             { merge: true }
           );
         }

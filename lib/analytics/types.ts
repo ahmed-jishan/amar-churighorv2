@@ -23,6 +23,22 @@ export interface VisitorSession {
   sessionId: string;
   /** Masked IP address (last octet removed) */
   ip?: string;
+  /** Raw client IP (server-side stored when available) */
+  ipRaw?: string;
+  /** Masked last IP recorded for the session */
+  lastIP?: string;
+  /** Raw last IP recorded for the session (server-side) */
+  lastIPRaw?: string;
+  /** Region / state / division name (if available from geo provider) */
+  region?: string;
+  /** District (smaller administrative area) */
+  district?: string;
+  /** Latitude coordinate (approximate, from IP geo) */
+  lat?: number;
+  /** Longitude coordinate (approximate, from IP geo) */
+  lon?: number;
+  /** Timezone identifier (e.g., 'Asia/Dhaka') */
+  timezone?: string;
   /** Country code (ISO 3166-1 alpha-2) */
   country?: string;
   /** City name */
