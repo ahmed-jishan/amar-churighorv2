@@ -531,6 +531,53 @@ export default function AdminFooterPage() {
               />
             </div>
 
+            {/* Branding Image Zoom Control */}
+            <div>
+              <label className="block text-xs text-gray-500 uppercase mb-2">Branding Image Zoom</label>
+              <div className="bg-[#051a1b] rounded-xl border border-[#1f3334] p-4">
+                <div className="flex items-center gap-4 mb-2">
+                  <button
+                    onClick={() => setConfig(prev => prev ? { ...prev, brandingImageScale: Math.max(0.8, (prev.brandingImageScale ?? 1.0) - 0.05) } : null)}
+                    className="w-9 h-9 rounded-lg bg-[#0b2a2b] border border-[#1f3334] flex items-center justify-center text-white hover:bg-[#1f3334] transition text-lg font-bold"
+                    title="Zoom Out"
+                  >
+                    –
+                  </button>
+                  <div className="flex-1 text-center">
+                    <span className="text-white font-mono text-lg font-semibold">
+                      {((config.brandingImageScale ?? 1.0) * 100).toFixed(0)}%
+                    </span>
+                    <div className="text-[10px] text-gray-500 uppercase mt-0.5">Scale</div>
+                  </div>
+                  <button
+                    onClick={() => setConfig(prev => prev ? { ...prev, brandingImageScale: Math.min(1.5, (prev.brandingImageScale ?? 1.0) + 0.05) } : null)}
+                    className="w-9 h-9 rounded-lg bg-[#0b2a2b] border border-[#1f3334] flex items-center justify-center text-white hover:bg-[#1f3334] transition text-lg font-bold"
+                    title="Zoom In"
+                  >
+                    +
+                  </button>
+                </div>
+                {/* Range Slider */}
+                <input
+                  type="range"
+                  min="0.8"
+                  max="1.5"
+                  step="0.01"
+                  value={config.brandingImageScale ?? 1.0}
+                  onChange={e => setConfig(prev => prev ? { ...prev, brandingImageScale: parseFloat(e.target.value) } : null)}
+                  className="w-full accent-[#d7ffa4] h-1.5 rounded-full appearance-none cursor-pointer bg-[#1f3334]"
+                />
+                <div className="flex justify-between text-[10px] text-gray-600 mt-1">
+                  <span>80%</span>
+                  <span>100%</span>
+                  <span>150%</span>
+                </div>
+                <p className="text-[10px] text-gray-500 mt-2">
+                  Controls how zoomed in the branding image appears. Range: 80% – 150%.
+                </p>
+              </div>
+            </div>
+
             {/* Copyright Text */}
             <div>
               <label className="block text-xs text-gray-500 uppercase mb-1">Copyright Text</label>

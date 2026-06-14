@@ -23,6 +23,8 @@ export interface FooterConfig {
   brandLogoHeight?: number | null;
   brandLogoShape?: 'rounded' | 'circle' | 'square';
   brandLogoAnimation?: boolean;
+  /** Image scale (0.8 → 1.5, default 1.0) for zoom control */
+  brandingImageScale?: number;
   socialLinks: {
     facebook?: string;
     instagram?: string;
@@ -46,6 +48,7 @@ const DEFAULT: FooterConfig = {
   brandLogoHeight: null,
   brandLogoShape: 'rounded',
   brandLogoAnimation: false,
+  brandingImageScale: 1.0,
   socialLinks: {},
   socialLinksArray: [
     { platform: 'facebook', url: '', icon: 'facebook', isActive: true },

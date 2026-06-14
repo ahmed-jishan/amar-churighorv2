@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getPublicFooterSections } from '@/lib/firebase/footer';
 import { getFooterConfig, FooterConfig } from '@/lib/firebase/footerConfig';
-import { FooterSection } from '@/types';
-import { Facebook, Instagram, Youtube, MessageCircle, CreditCard, DollarSign, Landmark } from 'lucide-react';
+import { Facebook, Instagram, Youtube, MessageCircle } from 'lucide-react';
 
 interface SectionDisplay {
   id: string;
@@ -46,11 +45,12 @@ const STATIC_SECTIONS: SectionDisplay[] = [
   },
 ];
 
-const PAYMENT_BADGES: Record<string, { label: string; className: string; icon: any }> = {
-  cod: { label: 'Cash on Delivery', className: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300', icon: DollarSign },
-  bkash: { label: 'bKash', className: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-300', icon: CreditCard },
-  nagad: { label: 'Nagad', className: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300', icon: CreditCard },
-  rocket: { label: 'Rocket', className: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300', icon: Landmark },
+/** Brand-specific payment method config — squircle card style with brand colors */
+const PAYMENT_BRANDS: Record<string, { label: string; bgClass: string; borderClass: string; textClass: string; icon: string }> = {
+  bkash: { label: 'bKash', bgClass: 'bg-pink-50 dark:bg-pink-950/40', borderClass: 'border-pink-200 dark:border-pink-800/50', textClass: 'text-pink-700 dark:text-pink-300', icon: 'bK' },
+  nagad: { label: 'Nagad', bgClass: 'bg-orange-50 dark:bg-orange-950/40', borderClass: 'border-orange-200 dark:border-orange-800/50', textClass: 'text-orange-700 dark:text-orange-300', icon: 'NG' },
+  rocket: { label: 'Rocket', bgClass: 'bg-purple-50 dark:bg-purple-950/40', borderClass: 'border-purple-200 dark:border-purple-800/50', textClass: 'text-purple-700 dark:text-purple-300', icon: 'RK' },
+  cod: { label: 'Cash on Delivery', bgClass: 'bg-gray-50 dark:bg-gray-800/40', borderClass: 'border-gray-200 dark:border-gray-700/50', textClass: 'text-gray-600 dark:text-gray-300', icon: 'COD' },
 };
 
 const SOCIAL_ICONS: Record<string, { icon: typeof Facebook; color: string }> = {
@@ -96,23 +96,35 @@ export default function Footer() {
   const displaySections = sections ?? [];
   const footerConfig = config;
 
-  // Determine which payment methods to show (use array format if available, else fallback)
   const paymentMethodsArray = footerConfig?.paymentMethodsArray?.filter(pm => pm.isActive) || [];
   const paymentMethodsKeys = paymentMethodsArray.length > 0
     ? paymentMethodsArray.map(pm => pm.id)
     : (footerConfig?.paymentMethods || ['cod', 'bkash', 'nagad', 'rocket']);
 
-  // Determine which social links to show (use array format if available, else legacy object)
   const socialLinksArray = footerConfig?.socialLinksArray?.filter(sl => sl.isActive && sl.url) || [];
   const hasSocialArray = socialLinksArray.length > 0;
 
+  /** Render a single payment badge — squircle card style */
+  const renderPaymentBadge = (method: string) => {
+    const brand = PAYMENT_BRANDS[method];
+    if (!brand) return null;
+    return (
+      <span
+        key={method}
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-semibold ${brand.bgClass} ${brand.borderClass} ${brand.textClass}`}
+      >
+        <span className="text-[9px] font-bold tracking-tight">{brand.icon}</span>
+        {brand.label}
+      </span>
+    );
+  };
+
   return (
-    <footer className="bg-white dark:bg-[#030f10] border-t border-gray-200 dark:border-[#1f3334] mt-auto">
+    <footer className="bg-white dark:bg-[#030f10] border-t border-gray-200 dark:border-[#1f3334] mt-auto overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-12">
-          {/* Brand Column */}
-          <div className="lg:w-72 shrink-0">
-            {/* Brand Logo */}
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+          {/* Brand Column — fully isolated from sections */}
+          <div className="lg:w-72 shrink-0 footer-brand-column">
             {footerConfig?.brandLogo ? (
               (() => {
                 const preset = footerConfig.brandLogoSizePreset || '350x75';
@@ -120,24 +132,69 @@ export default function Footer() {
                 const height = footerConfig.brandLogoHeight || (preset === '250x150' ? 150 : preset === '400x100' ? 100 : 75);
                 const shape = footerConfig.brandLogoShape || 'rounded';
                 const borderRadius = shape === 'circle' ? '9999px' : shape === 'rounded' ? '12px' : '0px';
-                const anim = footerConfig.brandLogoAnimation;
+                const scale = footerConfig.brandingImageScale ?? 1.0;
+
+                const displayWidth = shape === 'circle' ? Math.min(width, height, 180) : width;
+                const displayHeight = shape === 'circle' ? Math.min(width, height, 180) : height;
+
                 return (
-                  <div style={{ width, height, borderRadius }} className={`mb-2 overflow-hidden border border-transparent inline-block ${anim ? 'transition-transform duration-200 hover:scale-105' : ''}`}>
-                    <img src={footerConfig.brandLogo} alt="Amar Churighor" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius }} />
+                  <div className="footer-brand-unit">
+                    {/* Floating premium card with golden glow */}
+                    <div
+                      className="footer-brand-glow"
+                      style={{ borderRadius, maxWidth: '100%' }}
+                    >
+                      <div
+                        className="footer-brand-card footer-brand-shadow overflow-hidden relative"
+                        style={{
+                          borderRadius,
+                          width: '100%',
+                          maxWidth: displayWidth,
+                          height: displayHeight,
+                          background: 'rgba(255,255,255,0.03)',
+                        }}
+                      >
+                        <img
+                          src={footerConfig.brandLogo}
+                          alt="Amar Churighor"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            borderRadius,
+                            transform: `scale(${scale})`,
+                            transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                          }}
+                          loading="lazy"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Tagline */}
+                    <div className="footer-brand-tagline-wrapper">
+                      <p className="footer-brand-tagline text-sm text-gray-500 dark:text-gray-400 leading-relaxed mt-3">
+                        {footerConfig?.tagline || 'Your trusted jewelry destination'}
+                      </p>
+                    </div>
                   </div>
                 );
               })()
             ) : (
-              <h3 className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-400 bg-clip-text text-transparent mb-2">
-                Amar Churighor
-              </h3>
+              <div className="footer-brand-unit">
+                <h3 className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-400 bg-clip-text text-transparent mb-2">
+                  Amar Churighor
+                </h3>
+                <div className="footer-brand-tagline-wrapper">
+                  <p className="footer-brand-tagline text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                    {footerConfig?.tagline || 'Your trusted jewelry destination'}
+                  </p>
+                </div>
+              </div>
             )}
-            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs">
-              {footerConfig?.tagline || 'Your trusted jewelry destination'}
-            </p>
-            {/* Social Links - Array format */}
+
+            {/* Social Links - Array format with golden floating glow */}
             {hasSocialArray && (
-              <div className="flex gap-2 mt-4">
+              <div className="flex gap-3 mt-5">
                 {socialLinksArray.map(social => {
                   const socialDef = SOCIAL_ICONS[social.icon] || SOCIAL_ICONS[social.platform];
                   if (!socialDef) return null;
@@ -148,7 +205,7 @@ export default function Footer() {
                       href={social.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`w-8 h-8 rounded-full bg-gray-100 dark:bg-[#0b2a2b] flex items-center justify-center text-gray-500 dark:text-gray-400 ${socialDef.color} transition-colors`}
+                      className="social-icon-golden w-9 h-9 rounded-full bg-gray-100 dark:bg-[#0b2a2b] flex items-center justify-center text-gray-500 dark:text-gray-400 transition-all duration-300"
                     >
                       <Icon className="w-4 h-4" />
                     </a>
@@ -156,9 +213,9 @@ export default function Footer() {
                 })}
               </div>
             )}
-            {/* Social Links - Legacy format (fallback) */}
+            {/* Social Links - Legacy format (fallback) with golden floating glow */}
             {!hasSocialArray && footerConfig?.socialLinks && (
-              <div className="flex gap-2 mt-4">
+              <div className="flex gap-3 mt-5">
                 {Object.entries(footerConfig.socialLinks).filter(([, url]) => url).map(([platform, url]) => {
                   const social = SOCIAL_ICONS[platform];
                   if (!social) return null;
@@ -169,7 +226,7 @@ export default function Footer() {
                       href={url as string}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`w-8 h-8 rounded-full bg-gray-100 dark:bg-[#0b2a2b] flex items-center justify-center text-gray-500 dark:text-gray-400 ${social.color} transition-colors`}
+                      className="social-icon-golden w-9 h-9 rounded-full bg-gray-100 dark:bg-[#0b2a2b] flex items-center justify-center text-gray-500 dark:text-gray-400 transition-all duration-300"
                     >
                       <Icon className="w-4 h-4" />
                     </a>
@@ -177,10 +234,15 @@ export default function Footer() {
                 })}
               </div>
             )}
+
+            {/* Payment Method Badges — moved under social icons */}
+            <div className="mt-5 flex flex-wrap gap-2">
+              {paymentMethodsKeys.map(method => renderPaymentBadge(method))}
+            </div>
           </div>
 
-          {/* Sections Grid */}
-          <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
+          {/* Sections Grid — fully separate, never overlaps brand */}
+          <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 min-w-0">
             {displaySections.map(section => (
               <div key={section.id}>
                 <h4 className="font-semibold text-xs md:text-sm text-gray-900 dark:text-white mb-3 uppercase tracking-wide">
@@ -204,30 +266,16 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom Bar */}
+        {/* Bottom Bar — simplified without payment methods */}
         <div className="border-t border-gray-200 dark:border-[#1f3334] mt-8 md:mt-10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs md:text-sm text-gray-400 text-center md:text-left">
-            &copy; {currentYear} Amar Churighor. {footerConfig?.copyrightText || 'All rights reserved.'}
+          <p className="text-xs md:text-sm text-gray-400 text-center md:text-left inline-flex items-center gap-1">
+            <img
+              src="/luminnav.png"
+              alt=""
+              className="h-[2rem] md:h-[2rem] w-auto object-contain inline-block dark:brightness-0 dark:invert"
+            />
+            {currentYear} Lumin. {footerConfig?.copyrightText || 'All rights reserved.'}
           </p>
-
-          {/* Payment Badges with Circle Icons */}
-          <div className="flex flex-wrap justify-center gap-2">
-            {paymentMethodsKeys.map(method => {
-              const badge = PAYMENT_BADGES[method];
-              if (!badge) return null;
-              const Icon = badge.icon;
-              return (
-                <span
-                  key={method}
-                  className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-3 py-1.5 rounded-full ${badge.className}`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {badge.label}
-                </span>
-              );
-            })}
-          </div>
-
           <p className="text-[10px] md:text-xs text-gray-400 text-center">
             Made with ❤️ in Bangladesh
           </p>

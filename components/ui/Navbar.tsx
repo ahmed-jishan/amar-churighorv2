@@ -65,97 +65,15 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link href="/" className="relative shrink-0 group">
-            {/* Bracelet SVG frame */}
-            <svg
-              viewBox="0 0 280 48"
-              className="w-[140px] xs:w-[180px] sm:w-[220px] lg:w-[280px] h-10 lg:h-12"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              {/* Subtle glow behind bracelet */}
-              <defs>
-                <radialGradient id="braceletGlow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="currentColor" stopOpacity="0.08" />
-                  <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
-                </radialGradient>
-                <linearGradient id="braceletGradient" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#059669" />
-                  <stop offset="50%" stopColor="#10b981" />
-                  <stop offset="100%" stopColor="#059669" />
-                </linearGradient>
-                <linearGradient id="braceletGradientDark" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#34d399" />
-                  <stop offset="50%" stopColor="#6ee7b7" />
-                  <stop offset="100%" stopColor="#34d399" />
-                </linearGradient>
-                <linearGradient id="textGradient" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#059669" />
-                  <stop offset="50%" stopColor="#10b981" />
-                  <stop offset="100%" stopColor="#059669" />
-                </linearGradient>
-              </defs>
-
-              {/* Glow effect */}
-              <ellipse cx="140" cy="24" rx="130" ry="22" className="text-emerald-500 dark:text-emerald-400" fill="url(#braceletGlow)" />
-
-              {/* Ornamental left end cap */}
-              <circle cx="16" cy="24" r="4.5" className="stroke-emerald-600 dark:stroke-emerald-400" strokeWidth="1.5" fill="none" />
-              <circle cx="16" cy="24" r="1.8" fill="url(#braceletGradient)" className="dark:hidden" />
-              <circle cx="16" cy="24" r="1.8" fill="url(#braceletGradientDark)" className="hidden dark:block" />
-
-              {/* Ornamental right end cap */}
-              <circle cx="264" cy="24" r="4.5" className="stroke-emerald-600 dark:stroke-emerald-400" strokeWidth="1.5" fill="none" />
-              <circle cx="264" cy="24" r="1.8" fill="url(#braceletGradient)" className="dark:hidden" />
-              <circle cx="264" cy="24" r="1.8" fill="url(#braceletGradientDark)" className="hidden dark:block" />
-
-              {/* Small decorative dots flanking left */}
-              <circle cx="27" cy="18" r="1.2" className="fill-emerald-400 dark:fill-emerald-400/60" />
-              <circle cx="27" cy="30" r="1.2" className="fill-emerald-400 dark:fill-emerald-400/60" />
-
-              {/* Small decorative dots flanking right */}
-              <circle cx="253" cy="18" r="1.2" className="fill-emerald-400 dark:fill-emerald-400/60" />
-              <circle cx="253" cy="30" r="1.2" className="fill-emerald-400 dark:fill-emerald-400/60" />
-
-              {/* Top bracelet arc */}
-              <path
-                d="M22 24 C22 10, 40 6, 140 6 C240 6, 258 10, 258 24"
-                className="stroke-emerald-600 dark:stroke-emerald-400"
-                strokeWidth="1.2"
-                fill="none"
-                strokeLinecap="round"
-              />
-
-              {/* Bottom bracelet arc */}
-              <path
-                d="M22 24 C22 38, 40 42, 140 42 C240 42, 258 38, 258 24"
-                className="stroke-emerald-600/60 dark:stroke-emerald-400/60"
-                strokeWidth="0.8"
-                fill="none"
-                strokeLinecap="round"
-              />
-
-              {/* Micro decorative notches on top arc */}
-              <line x1="75" y1="8.5" x2="77" y2="10.5" className="stroke-emerald-400/50 dark:stroke-emerald-400/30" strokeWidth="0.6" />
-              <line x1="140" y1="7" x2="140" y2="9" className="stroke-emerald-400/50 dark:stroke-emerald-400/30" strokeWidth="0.6" />
-              <line x1="205" y1="8.5" x2="203" y2="10.5" className="stroke-emerald-400/50 dark:stroke-emerald-400/30" strokeWidth="0.6" />
-
-              {/* Text */}
-              <text
-                x="140"
-                y="27"
-                textAnchor="middle"
-                className="fill-emerald-600 dark:fill-emerald-400"
-                fontSize="15"
-                fontWeight="700"
-                fontFamily="system-ui, -apple-system, sans-serif"
-                letterSpacing="1.2"
-              >
-                Amar Churighor
-              </text>
-            </svg>
-
-            {/* Subtle hover glow effect */}
+          <Link href="/" className="relative shrink-0 group flex items-center gap-2 lg:gap-1">
+            <img
+              src="/luminnav.png"
+              alt="Lumin"
+              className="h-14 lg:h-20 w-auto object-contain"
+            />
+            <span className="text-xl lg:text-3xl font-bold tracking-[0.15em] lg:tracking-[0.2em] bg-gradient-to-r from-[#D4AF37] via-[#F5D76E] to-[#C9A84C] bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(212,175,55,0.3)]">
+              LUMIN
+            </span>
             <span className="absolute inset-0 -inset-x-2 -inset-y-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-emerald-500/5 dark:bg-emerald-400/5 blur-xl" />
           </Link>
 
