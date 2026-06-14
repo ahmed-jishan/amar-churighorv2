@@ -114,11 +114,19 @@ export default function Footer() {
           <div className="lg:w-72 shrink-0">
             {/* Brand Logo */}
             {footerConfig?.brandLogo ? (
-              <img 
-                src={footerConfig.brandLogo} 
-                alt="Amar Churighor" 
-                className="h-10 md:h-12 object-contain mb-2"
-              />
+              (() => {
+                const preset = footerConfig.brandLogoSizePreset || '350x75';
+                const width = footerConfig.brandLogoWidth || (preset === '250x150' ? 250 : preset === '400x100' ? 400 : 350);
+                const height = footerConfig.brandLogoHeight || (preset === '250x150' ? 150 : preset === '400x100' ? 100 : 75);
+                const shape = footerConfig.brandLogoShape || 'rounded';
+                const borderRadius = shape === 'circle' ? '9999px' : shape === 'rounded' ? '12px' : '0px';
+                const anim = footerConfig.brandLogoAnimation;
+                return (
+                  <div style={{ width, height, borderRadius }} className={`mb-2 overflow-hidden border border-transparent inline-block ${anim ? 'transition-transform duration-200 hover:scale-105' : ''}`}>
+                    <img src={footerConfig.brandLogo} alt="Amar Churighor" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius }} />
+                  </div>
+                );
+              })()
             ) : (
               <h3 className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-400 bg-clip-text text-transparent mb-2">
                 Amar Churighor

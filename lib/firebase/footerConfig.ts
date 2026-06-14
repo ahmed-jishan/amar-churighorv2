@@ -17,6 +17,12 @@ export interface PaymentMethod {
 export interface FooterConfig {
   tagline: string;
   brandLogo?: string;
+  // Optional customisation for brand logo appearance
+  brandLogoSizePreset?: '250x150' | '350x75' | '400x100' | 'custom';
+  brandLogoWidth?: number | null;
+  brandLogoHeight?: number | null;
+  brandLogoShape?: 'rounded' | 'circle' | 'square';
+  brandLogoAnimation?: boolean;
   socialLinks: {
     facebook?: string;
     instagram?: string;
@@ -35,6 +41,11 @@ const COLLECTION = 'settings';
 const DEFAULT: FooterConfig = {
   tagline: 'Your trusted jewelry destination',
   brandLogo: '',
+  brandLogoSizePreset: '350x75',
+  brandLogoWidth: null,
+  brandLogoHeight: null,
+  brandLogoShape: 'rounded',
+  brandLogoAnimation: false,
   socialLinks: {},
   socialLinksArray: [
     { platform: 'facebook', url: '', icon: 'facebook', isActive: true },

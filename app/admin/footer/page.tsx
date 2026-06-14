@@ -425,30 +425,99 @@ export default function AdminFooterPage() {
             {/* Brand Logo */}
             <div>
               <label className="block text-xs text-gray-500 uppercase mb-2">Brand Logo</label>
-              {config.brandLogo ? (
-                <div className="relative inline-block mb-3">
-                  <img src={config.brandLogo} alt="Brand Logo" className="h-16 object-contain rounded-lg border border-[#1f3334]" />
-                  <button
-                    onClick={() => setConfig(prev => prev ? { ...prev, brandLogo: '' } : null)}
-                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"
-                  >
-                    <X className="w-3 h-3 text-white" />
-                  </button>
-                </div>
-              ) : (
-                <label className="inline-flex items-center gap-2 px-4 py-3 border-2 border-dashed border-[#1f3334] rounded-xl cursor-pointer hover:border-green-500 transition mb-3">
-                  {uploadingLogo ? (
-                    <span className="text-xs text-green-400 animate-pulse">Uploading...</span>
+              <div className="flex items-start gap-4 mb-3">
+                <div>
+                  {config.brandLogo ? (
+                    <div className="relative inline-block">
+                      <div
+                        className={`overflow-hidden inline-block border border-[#1f3334] bg-[#051a1b] flex items-center justify-center`}
+                        style={{
+                          width: config.brandLogoWidth || (config.brandLogoSizePreset === '250x150' ? 250 : config.brandLogoSizePreset === '400x100' ? 400 : 350),
+                          height: config.brandLogoHeight || (config.brandLogoSizePreset === '250x150' ? 150 : config.brandLogoSizePreset === '400x100' ? 100 : 75),
+                          borderRadius: config.brandLogoShape === 'circle' ? '9999px' : config.brandLogoShape === 'rounded' ? '12px' : '0px',
+                        }}
+                      >
+                        <img src={config.brandLogo} alt="Brand Logo" className="object-contain w-full h-full" />
+                      </div>
+                      <button
+                        onClick={() => setConfig(prev => prev ? { ...prev, brandLogo: '' } : null)}
+                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
                   ) : (
-                    <>
-                      <Upload className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-400">Upload Brand Logo</span>
-                    </>
+                    <label className="inline-flex items-center gap-2 px-4 py-3 border-2 border-dashed border-[#1f3334] rounded-xl cursor-pointer hover:border-green-500 transition mb-3">
+                      {uploadingLogo ? (
+                        <span className="text-xs text-green-400 animate-pulse">Uploading...</span>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm text-gray-400">Upload Brand Logo</span>
+                        </>
+                      )}
+                      <input type="file" accept="image/*" className="hidden" onChange={handleBrandLogoUpload} />
+                    </label>
                   )}
-                  <input type="file" accept="image/*" className="hidden" onChange={handleBrandLogoUpload} />
-                </label>
-              )}
-              <p className="text-[10px] text-gray-500">Upload your brand logo. Will be displayed in footer. Uses Cloudinary.</p>
+                </div>
+
+                {/* Size & Shape Controls */}
+                <div className="flex-1 space-y-2">
+                  <div>
+                    <p className="text-[10px] text-gray-500 uppercase mb-1">Preset Sizes</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setConfig(prev => prev ? { ...prev, brandLogoSizePreset: '250x150', brandLogoWidth: null, brandLogoHeight: null } : null)}
+                        className={`px-3 py-1 text-xs rounded-lg border ${config.brandLogoSizePreset === '250x150' ? 'bg-[#d7ffa4] text-[#1a1a1a]' : 'text-gray-300 border-[#1f3334]'}`}
+                      >250×150</button>
+                      <button
+                        onClick={() => setConfig(prev => prev ? { ...prev, brandLogoSizePreset: '350x75', brandLogoWidth: null, brandLogoHeight: null } : null)}
+                        className={`px-3 py-1 text-xs rounded-lg border ${config.brandLogoSizePreset === '350x75' ? 'bg-[#d7ffa4] text-[#1a1a1a]' : 'text-gray-300 border-[#1f3334]'}`}
+                      >350×75</button>
+                      <button
+                        onClick={() => setConfig(prev => prev ? { ...prev, brandLogoSizePreset: '400x100', brandLogoWidth: null, brandLogoHeight: null } : null)}
+                        className={`px-3 py-1 text-xs rounded-lg border ${config.brandLogoSizePreset === '400x100' ? 'bg-[#d7ffa4] text-[#1a1a1a]' : 'text-gray-300 border-[#1f3334]'}`}
+                      >400×100</button>
+                      <button
+                        onClick={() => setConfig(prev => prev ? { ...prev, brandLogoSizePreset: 'custom' } : null)}
+                        className={`px-3 py-1 text-xs rounded-lg border ${config.brandLogoSizePreset === 'custom' ? 'bg-[#d7ffa4] text-[#1a1a1a]' : 'text-gray-300 border-[#1f3334]'}`}
+                      >Custom</button>
+                    </div>
+                  </div>
+
+                  {config.brandLogoSizePreset === 'custom' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-gray-500 uppercase">Width (px)</label>
+                        <input type="number" min={40} value={config.brandLogoWidth ?? ''} onChange={e => setConfig(prev => prev ? { ...prev, brandLogoWidth: e.target.value ? Number(e.target.value) : null } : null)} className="w-full p-2 bg-[#0b2a2b] border border-[#1f3334] rounded-lg text-white text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-gray-500 uppercase">Height (px)</label>
+                        <input type="number" min={20} value={config.brandLogoHeight ?? ''} onChange={e => setConfig(prev => prev ? { ...prev, brandLogoHeight: e.target.value ? Number(e.target.value) : null } : null)} className="w-full p-2 bg-[#0b2a2b] border border-[#1f3334] rounded-lg text-white text-sm" />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div>
+                      <label className="text-[10px] text-gray-500 uppercase mb-1">Shape</label>
+                      <select value={config.brandLogoShape} onChange={e => setConfig(prev => prev ? { ...prev, brandLogoShape: e.target.value as any } : null)} className="w-full p-2 bg-[#0b2a2b] border border-[#1f3334] rounded-lg text-white text-sm">
+                        <option value="rounded">Rounded</option>
+                        <option value="circle">Circle</option>
+                        <option value="square">Square</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500 uppercase mb-1">Animation</label>
+                      <label className="flex items-center gap-2 p-2 bg-[#051a1b] rounded-lg border border-[#1f3334]">
+                        <input type="checkbox" checked={!!config.brandLogoAnimation} onChange={e => setConfig(prev => prev ? { ...prev, brandLogoAnimation: e.target.checked } : null)} className="accent-[#d7ffa4]" />
+                        <span className="text-xs text-gray-300">Subtle hover animation</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="text-[10px] text-gray-500">Choose a preset or set a custom size. Shape controls the logo corner style; animation enables a subtle hover effect.</p>
             </div>
 
             {/* Tagline */}
