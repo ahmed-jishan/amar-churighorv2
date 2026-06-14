@@ -34,26 +34,41 @@
   }
 }
 
-/* Custom scrollbar for dark theme admin panels */
+/* Custom scrollbar for dark theme admin panels — refined for a professional look */
 .scrollbar-admin::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 .scrollbar-admin::-webkit-scrollbar-track {
-  background: #051a1b;
-  border-radius: 3px;
+  background: transparent; /* let underlying panel color show through */
+  border-radius: 8px;
+  margin: 6px 0; /* gives a little breathing room top/bottom */
 }
 .scrollbar-admin::-webkit-scrollbar-thumb {
-  background: #1f3334;
-  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(215,255,164,0.18), rgba(31,51,52,0.18));
+  border-radius: 9999px;
+  border: 2px solid rgba(5,26,27,0.0); /* creates spacing so thumb doesn't feel cramped */
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 1px 4px rgba(0,0,0,0.6);
 }
 .scrollbar-admin::-webkit-scrollbar-thumb:hover {
-  background: #2a4a4b;
+  background: linear-gradient(180deg, rgba(215,255,164,0.28), rgba(42,74,75,0.28));
+}
+.scrollbar-admin::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, rgba(215,255,164,0.36), rgba(42,74,75,0.36));
+}
+.scrollbar-admin::-webkit-scrollbar-corner {
+  background: transparent;
 }
 /* Firefox */
 .scrollbar-admin {
   scrollbar-width: thin;
-  scrollbar-color: #1f3334 #051a1b;
+  scrollbar-color: rgba(31,51,52,0.6) transparent;
+}
+
+/* Accessible focus outline when keyboard-scrolling the container */
+.scrollbar-admin:focus {
+  outline: 2px solid rgba(215,255,164,0.12);
+  outline-offset: 2px;
 }
 
 @layer utilities {

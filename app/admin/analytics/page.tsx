@@ -64,6 +64,35 @@ const COLORS = {
   teal: '#2dd4bf',
 };
 
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function formatMonthLabel(month: string) {
+  // Expecting format 'YYYY-MM' or 'YYYY-MM-DD'
+  if (!month) return '';
+  const parts = month.split('-');
+  if (parts.length >= 2) {
+    const m = Number(parts[1]);
+    if (!Number.isNaN(m) && m >= 1 && m <= 12) return MONTH_SHORT[m - 1];
+  }
+  // Fallback: try Date parse
+  const d = new Date(month);
+  if (!isNaN(d.getTime())) return MONTH_SHORT[d.getMonth()];
+  return month;
+}
+
+function formatDayLabel(dateStr: string) {
+  // Expecting format 'YYYY-MM-DD' or ISO string
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length >= 3) {
+    // remove leading zeros: '08' -> '8'
+    return String(Number(parts[2]));
+  }
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) return String(d.getDate());
+  return dateStr;
+}
+
 // ─── Date Filter Options ───────────────────────────────────
 
 const DATE_FILTERS: { value: AnalyticsDateFilter; label: string }[] = [
@@ -130,28 +159,30 @@ function SimpleBarChart({
   const max = Math.max(...data.map(d => d.value), 1);
 
   return (
-    <div className="flex items-end gap-1.5" style={{ height }}>
-      {data.map((point, i) => {
-        const h = (point.value / max) * 100;
-        return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
-            <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#1f3334] text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-              {point.value}
+    <div className="relative w-full overflow-hidden" style={{ height }}>
+      <div className="flex items-end gap-1.5 h-full">
+        {data.map((point, i) => {
+          const h = (point.value / max) * 100;
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+              <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#1f3334] text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                {point.value}
+              </div>
+              <div
+                className="w-full rounded-sm transition-all duration-300 cursor-pointer hover:opacity-80"
+                style={{
+                  height: `${h}%`,
+                  backgroundColor: color,
+                  minHeight: point.value > 0 ? 4 : 0,
+                }}
+              />
+              <span className="text-[10px] text-gray-400 whitespace-nowrap truncate w-full text-center mt-0.5">
+                {point.label.length > 6 ? point.label.slice(0, 6) + '..' : point.label}
+              </span>
             </div>
-            <div
-              className="w-full rounded-sm transition-all duration-300 cursor-pointer hover:opacity-80"
-              style={{
-                height: `${h}%`,
-                backgroundColor: color,
-                minHeight: point.value > 0 ? 4 : 0,
-              }}
-            />
-            <span className="text-[9px] text-gray-500 truncate w-full text-center mt-0.5">
-              {point.label.length > 5 ? point.label.slice(0, 5) + '..' : point.label}
-            </span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -466,7 +497,7 @@ export default function AnalyticsDashboardPage() {
         >
           <h3 className="text-white font-semibold mb-4">Daily Traffic (30 days)</h3>
           <SimpleBarChart
-            data={dailyTraffic.map(d => ({ label: d.date.slice(5), value: d.visitors }))}
+            data={dailyTraffic.map(d => ({ label: formatDayLabel(d.date), value: d.visitors }))}
             color={COLORS.primary}
             height={150}
           />
@@ -481,7 +512,7 @@ export default function AnalyticsDashboardPage() {
         >
           <h3 className="text-white font-semibold mb-4">Monthly Traffic (12 months)</h3>
           <SimpleBarChart
-            data={monthlyTraffic.map(d => ({ label: d.month.slice(5), value: d.visitors }))}
+            data={monthlyTraffic.map(d => ({ label: formatMonthLabel(d.month), value: d.visitors }))}
             color={COLORS.cyan}
             height={150}
           />

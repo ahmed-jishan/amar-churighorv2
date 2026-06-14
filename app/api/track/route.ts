@@ -77,8 +77,8 @@ function maskIP(ip: string): string {
 
   // IPv6 handling
   if (ip.includes(':')) {
-    // Common loopback forms
-    if (ip === '::1' || ip === '0:0:0:0:0:0:0:1') return '::1';
+    // Common loopback forms: map IPv6 loopback to IPv4 localhost for readability
+    if (ip === '::1' || ip === '0:0:0:0:0:0:0:1') return '127.0.0.1';
 
     // IPv4-mapped IPv6, e.g. ::ffff:127.0.0.1 -> mask as IPv4
     const v4mapped = ip.match(/::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);

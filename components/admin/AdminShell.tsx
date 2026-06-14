@@ -146,7 +146,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         )}
       </nav>
 
-      <div className="p-3 md:p-4 border-t border-[#1f3334]">
+      <div className="p-3 md:p-4 border-t border-[#1f3334] sticky bottom-0 z-20">
         <div className="flex items-center gap-3 mb-3 px-3">
           <div className="w-8 h-8 bg-[#d7ffa4] rounded-full flex items-center justify-center text-[#1a1a1a] font-bold text-sm shrink-0">
             {admin?.name?.[0] ?? 'A'}
@@ -169,7 +169,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   );
 
   return (
-    <div className="min-h-screen bg-[#030f10] flex">
+    <div className="h-screen bg-[#030f10] flex">
       {/* Mobile overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -287,7 +287,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           )}
         </nav>
 
-        <div className="p-4 border-t border-[#1f3334]">
+        <div className="p-4 border-t border-[#1f3334] sticky bottom-0 z-20">
           <div className="flex items-center gap-3 mb-3 px-3">
             <div className="w-8 h-8 bg-[#d7ffa4] rounded-full flex items-center justify-center text-[#1a1a1a] font-bold text-sm shrink-0">
               {admin?.name?.[0] ?? 'A'}
