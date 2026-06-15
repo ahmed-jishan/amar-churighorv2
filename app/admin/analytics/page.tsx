@@ -40,6 +40,7 @@ import {
   getTopProducts,
   getActiveVisitorCount,
   getDateRange,
+  fetchDashboardDataViaAPI,
 } from '@/lib/analytics/service';
 import type {
   AnalyticsSummary,
@@ -349,36 +350,52 @@ export default function AnalyticsDashboardPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const range = getDateRange(dateFilter);
+      // Strategy: Try Admin API first (server-side, works on Vercel)
+      // Fallback to client SDK if API fails (works locally)
+      const apiData = await fetchDashboardDataViaAPI(dateFilter);
 
-      const [
-        summaryData,
-        dailyData,
-        monthlyData,
-        yearlyData,
-        deviceData,
-        topPagesData,
-        topProductsData,
-        activeCount,
-      ] = await Promise.all([
-        getAnalyticsSummary(),
-        getDailyTraffic(dateFilter === 'this-year' ? 365 : 30),
-        getMonthlyTraffic(12),
-        getYearlyTraffic(),
-        getDeviceDistribution(range.startDate, range.endDate),
-        getTopPages(10, range.startDate, range.endDate),
-        getTopProducts(10, range.startDate, range.endDate),
-        getActiveVisitorCount(),
-      ]);
+      if (apiData && apiData.summary) {
+        // API succeeded — use server-side data
+        setSummary(apiData.summary);
+        setDailyTraffic(apiData.dailyTraffic);
+        setMonthlyTraffic(apiData.monthlyTraffic);
+        setYearlyTraffic(apiData.yearlyTraffic);
+        setDeviceDistribution(apiData.deviceDistribution);
+        setTopPages(apiData.topPages);
+        setTopProducts(apiData.topProducts);
+        setActiveVisitors(apiData.summary.activeVisitors);
+      } else {
+        // API failed — fallback to client SDK
+        const range = getDateRange(dateFilter);
+        const [
+          summaryData,
+          dailyData,
+          monthlyData,
+          yearlyData,
+          deviceData,
+          topPagesData,
+          topProductsData,
+          activeCount,
+        ] = await Promise.all([
+          getAnalyticsSummary(),
+          getDailyTraffic(dateFilter === 'this-year' ? 365 : 30),
+          getMonthlyTraffic(12),
+          getYearlyTraffic(),
+          getDeviceDistribution(range.startDate, range.endDate),
+          getTopPages(10, range.startDate, range.endDate),
+          getTopProducts(10, range.startDate, range.endDate),
+          getActiveVisitorCount(),
+        ]);
 
-      setSummary(summaryData);
-      setDailyTraffic(dailyData);
-      setMonthlyTraffic(monthlyData);
-      setYearlyTraffic(yearlyData);
-      setDeviceDistribution(deviceData);
-      setTopPages(topPagesData);
-      setTopProducts(topProductsData);
-      setActiveVisitors(activeCount);
+        setSummary(summaryData);
+        setDailyTraffic(dailyData);
+        setMonthlyTraffic(monthlyData);
+        setYearlyTraffic(yearlyData);
+        setDeviceDistribution(deviceData);
+        setTopPages(topPagesData);
+        setTopProducts(topProductsData);
+        setActiveVisitors(activeCount);
+      }
     } catch (error) {
       console.error('[Analytics Dashboard] Error loading data:', error);
     } finally {

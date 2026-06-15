@@ -304,6 +304,49 @@ async function getReturningVisitorCount(): Promise<number> {
   }
 }
 
+// ─── New: Fetch ALL dashboard data via Admin API (server-side) ──────────
+// This is the recommended approach for Vercel deployments.
+// Falls back to client SDK if API is unavailable.
+
+export async function fetchDashboardDataViaAPI(
+  filter: string = 'last-7-days',
+  customStart?: string,
+  customEnd?: string
+): Promise<{
+  summary: AnalyticsSummary | null;
+  dailyTraffic: DailyTrafficPoint[];
+  monthlyTraffic: MonthlyTrafficPoint[];
+  yearlyTraffic: YearlyTrafficPoint[];
+  deviceDistribution: DeviceDistribution[];
+  topPages: { url: string; count: number }[];
+  topProducts: { productId: string; productName: string; count: number }[];
+} | null> {
+  try {
+    const params = new URLSearchParams({ filter });
+    if (customStart) params.set('start', customStart);
+    if (customEnd) params.set('end', customEnd);
+
+    const res = await fetch(`/api/admin/analytics/dashboard?${params.toString()}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json.success) return null;
+
+    return {
+      summary: json.summary as AnalyticsSummary,
+      dailyTraffic: json.dailyTraffic as DailyTrafficPoint[],
+      monthlyTraffic: json.monthlyTraffic as MonthlyTrafficPoint[],
+      yearlyTraffic: json.yearlyTraffic as YearlyTrafficPoint[],
+      deviceDistribution: json.deviceDistribution as DeviceDistribution[],
+      topPages: json.topPages as { url: string; count: number }[],
+      topProducts: json.topProducts as { productId: string; productName: string; count: number }[],
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ─── Daily Traffic (FIX: batch query instead of 31 individual reads) ─────
 
 export async function getDailyTraffic(days: number = 30): Promise<DailyTrafficPoint[]> {

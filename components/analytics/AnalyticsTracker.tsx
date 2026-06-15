@@ -22,6 +22,18 @@ import {
   getReferrer,
   touchSession,
 } from '@/lib/analytics/visitorId';
+import { db } from '@/lib/firebase/config';
+import {
+  collection,
+  addDoc,
+  doc,
+  setDoc,
+  getDocs,
+  query,
+  where,
+  limit,
+  increment,
+} from 'firebase/firestore';
 
 const TRACKING_API = '/api/track';
 const HEARTBEAT_INTERVAL_MS = 60000; // 60 seconds
@@ -29,25 +41,140 @@ const SESSION_TRACKED_KEY = 'analytic_session_tracked';
 
 // ─── Helper: fire tracking event (fire-and-forget) ────────
 
-function sendTrackingEvent(body: Record<string, unknown>): void {
+async function sendTrackingEvent(body: Record<string, unknown>): Promise<void> {
   if (typeof window === 'undefined') return;
   
   // Use sendBeacon for reliability on page unload
   if (body.type === 'endsession' && navigator.sendBeacon) {
     const blob = new Blob([JSON.stringify(body)], { type: 'application/json' });
-    navigator.sendBeacon(TRACKING_API, blob);
+    const sent = navigator.sendBeacon(TRACKING_API, blob);
+    // If sendBeacon fails, try client-side fallback
+    if (!sent) {
+      await clientSideTracking(body as any);
+    }
     return;
   }
 
-  // Use fetch with keepalive for other events
-  fetch(TRACKING_API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    keepalive: true,
-  }).catch(() => {
-    // Silent fail — tracking should never affect UX
-  });
+  // Try API route first (Admin SDK, works well on Vercel with proper env vars)
+  try {
+    const res = await fetch(TRACKING_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      keepalive: true,
+    });
+    if (res.ok) return;
+  } catch {
+    // API route failed — fall back to client-side SDK
+  }
+
+  // Fallback: write directly via client SDK
+  await clientSideTracking(body as any);
+}
+
+// ─── Client-side Fallback (direct Firestore write) ───────
+
+async function clientSideTracking(body: any): Promise<void> {
+  try {
+    const now = new Date().toISOString();
+    const todayStr = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+    const monthStr = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    };
+    const dateId = todayStr();
+    const monthId = monthStr();
+
+    switch (body.type) {
+      case 'session': {
+        await addDoc(collection(db, 'visitor_sessions'), {
+          visitorId: body.visitorId ?? 'unknown',
+          sessionId: body.sessionId ?? 'unknown',
+          deviceType: body.deviceType ?? 'desktop',
+          browser: body.browser ?? 'unknown',
+          os: body.os ?? 'unknown',
+          sessionStart: now,
+          lastActivity: now,
+          landingPage: body.landingPage ?? '/',
+          referralSource: body.referralSource ?? 'direct',
+          visitCount: body.visitCount ?? 1,
+          isActive: true,
+          createdAt: now,
+        });
+        // Increment daily+monthly counters
+        await Promise.all([
+          setDoc(doc(db, 'analytics_daily', dateId), { date: dateId, uniqueVisitors: increment(1), updatedAt: now }, { merge: true }),
+          setDoc(doc(db, 'analytics_monthly', monthId), { month: monthId, uniqueVisitors: increment(1), updatedAt: now }, { merge: true }),
+        ]);
+        break;
+      }
+      case 'pageview': {
+        await addDoc(collection(db, 'page_views'), {
+          visitorId: body.visitorId ?? 'unknown',
+          sessionId: body.sessionId ?? 'unknown',
+          pageUrl: body.pageUrl ?? '/',
+          route: body.route ?? '/',
+          pageTitle: body.pageTitle ?? '',
+          timestamp: now,
+        });
+        await Promise.all([
+          setDoc(doc(db, 'analytics_daily', dateId), { date: dateId, pageViews: increment(1), updatedAt: now }, { merge: true }),
+          setDoc(doc(db, 'analytics_monthly', monthId), { month: monthId, pageViews: increment(1), updatedAt: now }, { merge: true }),
+        ]);
+        break;
+      }
+      case 'productview': {
+        await addDoc(collection(db, 'product_views'), {
+          visitorId: body.visitorId ?? 'unknown',
+          sessionId: body.sessionId ?? 'unknown',
+          productId: body.productId ?? '',
+          productName: body.productName ?? 'Unknown',
+          productSlug: body.productSlug ?? '',
+          timestamp: now,
+        });
+        await Promise.all([
+          setDoc(doc(db, 'analytics_daily', dateId), { date: dateId, productViews: increment(1), updatedAt: now }, { merge: true }),
+          setDoc(doc(db, 'analytics_monthly', monthId), { month: monthId, productViews: increment(1), updatedAt: now }, { merge: true }),
+        ]);
+        break;
+      }
+      case 'heartbeat': {
+        if (!body.sessionId) break;
+        const snap = await getDocs(
+          query(collection(db, 'visitor_sessions'), where('sessionId', '==', body.sessionId), limit(1))
+        );
+        if (!snap.empty) {
+          await setDoc(doc(db, 'visitor_sessions', snap.docs[0].id),
+            { lastActivity: now, exitPage: body.currentPage ?? '/' },
+            { merge: true }
+          );
+        }
+        break;
+      }
+      case 'endsession': {
+        if (!body.sessionId) break;
+        const snap = await getDocs(
+          query(collection(db, 'visitor_sessions'), where('sessionId', '==', body.sessionId), limit(1))
+        );
+        if (!snap.empty) {
+          const data = snap.docs[0].data();
+          const duration = data.sessionStart
+            ? Math.floor((Date.now() - new Date(data.sessionStart).getTime()) / 1000)
+            : 0;
+          await setDoc(doc(db, 'visitor_sessions', snap.docs[0].id),
+            { exitPage: body.exitPage ?? '/', duration, isActive: false, lastActivity: now },
+            { merge: true }
+          );
+        }
+        break;
+      }
+    }
+  } catch {
+    // silent — never break UX for analytics
+  }
 }
 
 // ─── Helper: get visit count from localStorage ────────────
