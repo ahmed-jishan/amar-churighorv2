@@ -205,12 +205,12 @@ export default function AdminCategoriesPage() {
       {/* Category Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#051a1b] rounded-2xl border border-[#1f3334] w-full max-w-lg">
-            <div className="flex justify-between items-center p-5 border-b border-[#1f3334] sticky top-0 bg-[#051a1b]">
+          <div className="bg-[#051a1b] rounded-2xl border border-[#1f3334] w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-5 border-b border-[#1f3334] shrink-0 bg-[#051a1b]">
               <h2 className="font-bold text-white">{editing ? 'Edit Category' : 'Add Category'}</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto scrollbar-admin">
               <div>
                 <label className="block text-xs text-gray-500 uppercase mb-1">Name *</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value, slug: editing ? f.slug : generateSlug(e.target.value) }))}
@@ -266,7 +266,7 @@ export default function AdminCategoriesPage() {
                   className="accent-[#d7ffa4]" /> Active
               </label>
             </div>
-            <div className="flex gap-3 p-5 border-t border-[#1f3334]">
+            <div className="flex gap-3 p-5 border-t border-[#1f3334] shrink-0">
               <NeoButton text="Cancel" onClick={() => setShowForm(false)}
                 className="bg-transparent text-gray-400 border-[#1f3334] shadow-none" />
               <NeoButton text={saving ? 'Saving...' : editing ? 'Update Category' : 'Create Category'} onClick={handleSave} disabled={saving}
