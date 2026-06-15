@@ -98,21 +98,32 @@ function maskIP(ip: string): string {
   return ip;
 }
 
-// ─── Helper: Geo lookup (best-effort) ───────────────────────
+// ─── Helper: Geo lookup (best-effort with full fields) ───────
 async function lookupGeoForIP(ip: string) {
   try {
-    // Try ip-api.com (free, limited) as a fallback. Returns fields: country, regionName, city, lat, lon
-    const res = await fetch(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,regionName,city,lat,lon,timezone`);
+    // ip-api.com free tier — requesting ALL available fields
+    // Docs: https://ip-api.com/docs/api:json
+    const res = await fetch(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,isp,org,as,mobile,proxy,hosting,query`);
     if (!res.ok) return null;
     const data = await res.json();
     if (data && data.status === 'success') {
       return {
         country: data.country || null,
+        countryCode: data.countryCode || null,
         region: data.regionName || null,
+        regionCode: data.region || null,
+        district: data.district || null,
         city: data.city || null,
+        postalCode: data.zip || null,
         lat: typeof data.lat === 'number' ? data.lat : null,
         lon: typeof data.lon === 'number' ? data.lon : null,
         timezone: data.timezone || null,
+        isp: data.isp || null,
+        org: data.org || null,
+        as: data.as || null,
+        isMobile: typeof data.mobile === 'boolean' ? data.mobile : null,
+        isProxy: typeof data.proxy === 'boolean' ? data.proxy : null,
+        isHosting: typeof data.hosting === 'boolean' ? data.hosting : null,
       };
     }
   } catch (err) {
@@ -136,21 +147,44 @@ export async function POST(req: NextRequest) {
     switch (type) {
       case 'session': {
         const now = nowISO();
-        await db.collection(COLLECTIONS.visitorSessions).add({
+
+        // ─── Build location data from IP geo + optional GPS ────
+        const sessionData: Record<string, any> = {
           visitorId: body.visitorId ?? 'unknown',
           sessionId: body.sessionId ?? 'unknown',
           ip: maskedClientIP,
           ipRaw: rawClientIP,
-          geo: geo,
+          // IP-based geo (from ip-api.com, server-side)
           country: geo?.country ?? null,
+          countryCode: geo?.countryCode ?? null,
           region: geo?.region ?? null,
+          regionCode: geo?.regionCode ?? null,
+          district: geo?.district ?? null,
           city: geo?.city ?? null,
+          postalCode: geo?.postalCode ?? null,
           lat: geo?.lat ?? null,
           lon: geo?.lon ?? null,
           timezone: geo?.timezone ?? null,
+          isp: geo?.isp ?? null,
+          org: geo?.org ?? null,
+          as: geo?.as ?? null,
+          isMobile: geo?.isMobile ?? null,
+          isProxy: geo?.isProxy ?? null,
+          isHosting: geo?.isHosting ?? null,
+          // GPS-based location (from browser, client-side)
+          gpsLat: body.gpsLat ?? null,
+          gpsLon: body.gpsLon ?? null,
+          gpsAccuracy: body.gpsAccuracy ?? null,
+          streetAddress: body.streetAddress ?? null,
+          road: body.road ?? null,
+          houseNumber: body.houseNumber ?? null,
+          suburb: body.suburb ?? null,
+          isGpsLocation: body.isGpsLocation ?? false,
+          // Device info
           deviceType: body.deviceType ?? 'desktop',
           browser: body.browser ?? 'unknown',
           os: body.os ?? 'unknown',
+          // Session info
           sessionStart: now,
           lastActivity: now,
           landingPage: body.landingPage ?? '/',
@@ -158,7 +192,9 @@ export async function POST(req: NextRequest) {
           visitCount: body.visitCount ?? 1,
           isActive: true,
           createdAt: now,
-        });
+        };
+
+        await db.collection(COLLECTIONS.visitorSessions).add(sessionData);
         await incrementCounters(['uniqueVisitors']);
         break;
       }

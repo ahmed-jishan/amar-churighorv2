@@ -29,26 +29,68 @@ export interface VisitorSession {
   lastIP?: string;
   /** Raw last IP recorded for the session (server-side) */
   lastIPRaw?: string;
-  /** Region / state / division name (if available from geo provider) */
+  
+  // ─── IP-based Geo Location (ip-api.com) ─────────────────
+  /** Country name (from IP geo) */
+  country?: string;
+  /** Country code (ISO 3166-1 alpha-2) */
+  countryCode?: string;
+  /** Region / state / division name (from IP geo) */
   region?: string;
+  /** Region code (e.g., 'C' for Dhaka division) */
+  regionCode?: string;
   /** District (smaller administrative area) */
   district?: string;
-  /** Latitude coordinate (approximate, from IP geo) */
+  /** City name */
+  city?: string;
+  /** Postal/ZIP code */
+  postalCode?: string;
+  /** Latitude coordinate (from IP geo) */
   lat?: number;
-  /** Longitude coordinate (approximate, from IP geo) */
+  /** Longitude coordinate (from IP geo) */
   lon?: number;
   /** Timezone identifier (e.g., 'Asia/Dhaka') */
   timezone?: string;
-  /** Country code (ISO 3166-1 alpha-2) */
-  country?: string;
-  /** City name */
-  city?: string;
+  /** ISP name */
+  isp?: string;
+  /** Organization name */
+  org?: string;
+  /** AS number / name */
+  as?: string;
+  /** Whether the IP is from a mobile network */
+  isMobile?: boolean;
+  /** Whether the IP is a proxy/VPN */
+  isProxy?: boolean;
+  /** Whether the IP is hosted (datacenter) */
+  isHosting?: boolean;
+
+  // ─── GPS-based Location (Browser Geolocation API) ──────
+  /** GPS latitude (from browser geolocation, NOT IP) */
+  gpsLat?: number;
+  /** GPS longitude (from browser geolocation, NOT IP) */
+  gpsLon?: number;
+  /** GPS accuracy in meters */
+  gpsAccuracy?: number;
+  /** Street address (from reverse geocoding GPS coords) */
+  streetAddress?: string;
+  /** Road/street name */
+  road?: string;
+  /** House/street number */
+  houseNumber?: string;
+  /** Suburb/neighborhood */
+  suburb?: string;
+  /** Whether location came from GPS (true) or IP (false) */
+  isGpsLocation?: boolean;
+
+  // ─── Device Info ────────────────────────────────────────
   /** Device type classification */
   deviceType: DeviceType;
   /** Browser name */
   browser: BrowserName;
   /** Operating system name */
   os: OSName;
+
+  // ─── Session Info ───────────────────────────────────────
   /** Session start timestamp (ISO) */
   sessionStart: string;
   /** Last activity timestamp (ISO) */

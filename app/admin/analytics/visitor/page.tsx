@@ -100,13 +100,23 @@ function SessionCard({
   const isActive = session.isActive;
 
   function formatLocation(s: VisitorSession) {
-    if (s.country) return `${s.country}${s.region ? ` · ${s.region}` : ''}${s.city ? ` · ${s.city}` : ''}`;
+    // GPS location takes priority (street-level accuracy)
+    if (s.isGpsLocation && s.streetAddress) {
+      return s.streetAddress;
+    }
+    // Fallback: IP-based location
+    const parts: string[] = [];
+    if (s.city) parts.push(s.city);
+    if (s.district) parts.push(s.district);
+    if (s.region) parts.push(s.region);
+    if (s.country) parts.push(s.country);
+    if (parts.length > 0) return parts.join(' · ');
     // treat loopback/local IPs as Localhost
     const raw = s.ipRaw || s.ip || '';
     if (raw === '127.0.0.1' || raw === '::1' || raw.startsWith('192.168.') || raw.startsWith('10.') || raw.startsWith('172.')) {
       return 'Localhost';
     }
-    return raw || 'N/A';
+    return 'Unknown Location';
   }
 
   return (
@@ -184,16 +194,92 @@ function SessionCard({
                 <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">OS</p>
                 <p className="text-sm text-gray-300 capitalize">{session.os}</p>
               </div>
-              <div className="bg-[#051a1b] rounded-xl p-3">
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Location</p>
-                <p className="text-sm text-gray-300">{formatLocation(session)}</p>
-                {session.lat && session.lon && (
-                  <p className="text-xs text-gray-500 mt-1">Coordinates: {session.lat}, {session.lon}</p>
+              <div className="bg-[#051a1b] rounded-xl p-3 col-span-2">
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                  Location {session.isGpsLocation ? (
+                    <span className="text-green-400 ml-1">(GPS)</span>
+                  ) : session.country ? (
+                    <span className="text-cyan-400 ml-1">(IP-based)</span>
+                  ) : ''}
+                </p>
+                
+                {/* GPS Street Address — highest accuracy */}
+                {session.isGpsLocation && session.streetAddress && (
+                  <div className="mb-2">
+                    <p className="text-sm text-[#d7ffa4] font-medium">{session.streetAddress}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">
+                      Accuracy: {session.gpsAccuracy ? `${Math.round(session.gpsAccuracy)}m` : 'N/A'}
+                      {session.gpsLat && session.gpsLon && ` · ${session.gpsLat.toFixed(4)}, ${session.gpsLon.toFixed(4)}`}
+                    </p>
+                  </div>
                 )}
-                {session.timezone && (
-                  <p className="text-xs text-gray-500 mt-1">Timezone: {session.timezone}</p>
+
+                {/* IP-based Location */}
+                {!session.isGpsLocation && (
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-300">
+                      {[session.city, session.district, session.region, session.country]
+                        .filter(Boolean).join(', ') || 'Unknown'}
+                    </p>
+                    {session.postalCode && (
+                      <p className="text-xs text-gray-500">Postal Code: {session.postalCode}</p>
+                    )}
+                    {session.lat && session.lon && (
+                      <p className="text-xs text-gray-500">IP Coordinates: {session.lat.toFixed(4)}, {session.lon.toFixed(4)}</p>
+                    )}
+                    {session.isp && (
+                      <p className="text-xs text-gray-500">ISP: {session.isp}</p>
+                    )}
+                    {session.org && (
+                      <p className="text-xs text-gray-500">Organization: {session.org}</p>
+                    )}
+                    {session.as && (
+                      <p className="text-xs text-gray-500">AS: {session.as}</p>
+                    )}
+                    {session.isMobile && (
+                      <p className="text-xs text-green-500/70">Mobile Network</p>
+                    )}
+                    {session.isProxy && (
+                      <p className="text-xs text-yellow-500/70">Proxy/VPN Detected</p>
+                    )}
+                    {session.isHosting && (
+                      <p className="text-xs text-orange-500/70">Hosting/Datacenter IP</p>
+                    )}
+                    {session.timezone && (
+                      <p className="text-xs text-gray-500">Timezone: {session.timezone}</p>
+                    )}
+                  </div>
                 )}
-                <p className="text-[10px] text-gray-500 mt-2">IP-based location is approximate; street-level addresses cannot be determined reliably from IP.</p>
+
+                {/* GPS location details when available */}
+                {session.isGpsLocation && (
+                  <div className="mt-2 space-y-1 border-t border-[#1f3334] pt-2">
+                    {session.road && (
+                      <p className="text-xs text-gray-500">Road: {session.road}{session.houseNumber ? `, House ${session.houseNumber}` : ''}</p>
+                    )}
+                    {session.suburb && (
+                      <p className="text-xs text-gray-500">Area: {session.suburb}</p>
+                    )}
+                    {session.city && (
+                      <p className="text-xs text-gray-500">City: {session.city}</p>
+                    )}
+                    {session.region && (
+                      <p className="text-xs text-gray-500">Region: {session.region}</p>
+                    )}
+                    {session.country && (
+                      <p className="text-xs text-gray-500">Country: {session.country}</p>
+                    )}
+                    {session.postalCode && (
+                      <p className="text-xs text-gray-500">Postal Code: {session.postalCode}</p>
+                    )}
+                  </div>
+                )}
+                
+                <p className="text-[10px] text-gray-600 mt-2">
+                  {session.isGpsLocation 
+                    ? 'Street address from browser GPS. User granted location permission.'
+                    : 'Approximate location from IP address. Not street-level accurate.'}
+                </p>
               </div>
               <div className="bg-[#051a1b] rounded-xl p-3">
                 <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Visit Count</p>
