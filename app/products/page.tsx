@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useProducts } from '@/hooks/useProducts';
 import { getCategories } from '@/lib/firebase/categories';
 import ProductCard from '@/components/ui/ProductCard';
@@ -7,15 +7,25 @@ import ProductSkeleton from '@/components/ui/ProductSkeleton';
 import { ProductCategory } from '@/types';
 import { motion } from 'framer-motion';
 import { SlidersHorizontal } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
-export default function ProductsPage() {
-  const [activeCategory, setActiveCategory] = useState('All');
+function ProductsContent() {
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get('category');
+  const [activeCategory, setActiveCategory] = useState(categoryParam || 'All');
   const [sortBy, setSortBy] = useState<'newest' | 'price_asc' | 'price_desc'>('newest');
   const [categories, setCategories] = useState<ProductCategory[]>([]);
 
   useEffect(() => {
     getCategories().then(cats => setCategories(cats.filter(c => c.isActive)));
   }, []);
+
+  // Sync URL category param to activeCategory when it changes
+  useEffect(() => {
+    if (categoryParam) {
+      setActiveCategory(categoryParam);
+    }
+  }, [categoryParam]);
 
   const { products, loading } = useProducts({ isActive: true });
 
@@ -52,7 +62,7 @@ export default function ProductsPage() {
         <div className="sm:ml-auto flex items-center gap-2 text-sm w-full sm:w-auto">
           <SlidersHorizontal className="w-4 h-4 text-gray-400 shrink-0" />
           <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}
-            className="flex-1 sm:flex-none bg-transparent border border-[#1f3334] rounded-lg px-3 py-1.5 text-sm outline-none">
+            className="flex-1 sm:flex-none bg-white dark:bg-[#0b2a2b] border border-[#1f3334] rounded-lg px-3 py-1.5 text-sm outline-none text-gray-800 dark:text-gray-200">
             <option value="newest">Newest</option>
             <option value="price_asc">Price: Low to High</option>
             <option value="price_desc">Price: High to Low</option>
@@ -74,5 +84,13 @@ export default function ProductsPage() {
         </div>
       )}
     </motion.div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">{Array(8).fill(0).map((_, i) => <ProductSkeleton key={i} />)}</div>}>
+      <ProductsContent />
+    </Suspense>
   );
 }

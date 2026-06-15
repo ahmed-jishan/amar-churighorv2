@@ -42,7 +42,7 @@ function FeaturedCollectionSection() {
           <h2 className="text-2xl md:text-3xl font-bold">{config?.title || 'Featured Collection'}</h2>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{config?.subtitle || 'Handpicked for you'}</p>
         </div>
-        <Link href="/products" className="self-stretch sm:self-auto"><NeoButton text="View All"
+        <Link href="/collections/featured" className="self-stretch sm:self-auto"><NeoButton text="View All"
           className="w-full sm:w-auto bg-white text-black border-black shadow-none hover:shadow-[3px_3px_0px_black]
           dark:bg-transparent dark:text-gray-300 dark:border-[#1f3334] dark:hover:border-green-400 dark:hover:text-green-400" /></Link>
       </div>
