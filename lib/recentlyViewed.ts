@@ -8,7 +8,7 @@ interface RecentlyViewedProduct {
   name: string;
   slug: string;
   price: number;
-  discountPrice?: number;
+  discountPrice?: number | null;
   featuredImage: string;
   category: string;
   stock: number;

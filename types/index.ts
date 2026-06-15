@@ -15,7 +15,7 @@ export interface Product {
   description: string;
   richDescription?: string;
   price: number;
-  discountPrice?: number;
+  discountPrice?: number | null;
   sku: string;
   /** Backward-compatible alias for availableStock */
   stock: number;
