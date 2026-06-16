@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ReviewsSection() {
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [config, setConfig] = useState<ReviewAnimationConfig>(DEFAULT_REVIEW_ANIMATION_CONFIG);
+  const [config, setConfig] = useState<ReviewAnimationConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -41,21 +41,22 @@ export default function ReviewsSection() {
   }, [reviews.length]);
 
   useEffect(() => {
-    if (!config.enabled || !config.autoPlay || isPaused || reviews.length <= 1) return;
+    if (!config || !config.enabled || !config.autoPlay || isPaused || reviews.length <= 1) return;
     const speedMs = (config.customSpeed || REVIEW_ANIMATION_SPEEDS[config.speed].value) * 1000;
     intervalRef.current = setInterval(slideNext, speedMs);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [config.enabled, config.autoPlay, config.speed, config.customSpeed, isPaused, reviews.length, slideNext]);
+  }, [config?.enabled, config?.autoPlay, config?.speed, config?.customSpeed, isPaused, reviews.length, slideNext, config]);
 
   if (loading) return null;
   if (reviews.length === 0) return null;
 
-  const speedVal = config.customSpeed || REVIEW_ANIMATION_SPEEDS[config.speed].value;
+  const safeConfig = config || DEFAULT_REVIEW_ANIMATION_CONFIG;
+  const speedVal = safeConfig.customSpeed || REVIEW_ANIMATION_SPEEDS[safeConfig.speed].value;
 
   // Static grid when animation disabled
-  if (!config.enabled) {
+  if (!safeConfig.enabled) {
     return (
       <section>
         <h2 className="text-3xl font-bold text-center mb-2">Customer Reviews</h2>
@@ -70,7 +71,7 @@ export default function ReviewsSection() {
   }
 
   // Animation modes
-  const isSingleCardMode = ['carousel-slider', 'auto-sliding', 'premium-luxury'].includes(config.animationType);
+  const isSingleCardMode = ['carousel-slider', 'auto-sliding', 'premium-luxury'].includes(safeConfig.animationType);
 
   if (isSingleCardMode) {
     return (
@@ -79,23 +80,23 @@ export default function ReviewsSection() {
         <p className="text-center text-gray-500 mb-10">What our customers say</p>
         <div
           className="relative max-w-2xl mx-auto"
-          onMouseEnter={() => config.pauseOnHover && setIsPaused(true)}
-          onMouseLeave={() => config.pauseOnHover && setIsPaused(false)}
+          onMouseEnter={() => safeConfig.pauseOnHover && setIsPaused(true)}
+          onMouseLeave={() => safeConfig.pauseOnHover && setIsPaused(false)}
           ref={containerRef}
         >
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
               initial={
-                config.animationType === 'premium-luxury'
+                safeConfig.animationType === 'premium-luxury'
                   ? { opacity: 0, scale: 0.9, y: 20 }
-                  : { opacity: 0, x: config.direction === 'left' ? 50 : -50 }
+                  : { opacity: 0, x: safeConfig.direction === 'left' ? 50 : -50 }
               }
               animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
               exit={
-                config.animationType === 'premium-luxury'
+                safeConfig.animationType === 'premium-luxury'
                   ? { opacity: 0, scale: 0.95, y: -10 }
-                  : { opacity: 0, x: config.direction === 'left' ? -50 : 50 }
+                  : { opacity: 0, x: safeConfig.direction === 'left' ? -50 : 50 }
               }
               transition={{ duration: 0.5, ease: 'easeInOut' }}
               className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-8 shadow-lg"
@@ -140,45 +141,52 @@ export default function ReviewsSection() {
     );
   }
 
-  // Marquee / continuous scroll modes
-  const isMarquee = ['infinite-marquee', 'smooth-continuous', 'horizontal-left', 'horizontal-right'].includes(config.animationType);
+  // Marquee / continuous scroll modes — using CSS animation for smooth no-blink infinite scroll
+  const isMarquee = ['infinite-marquee', 'smooth-continuous', 'horizontal-left', 'horizontal-right'].includes(safeConfig.animationType);
 
   if (isMarquee) {
-    const isRight = config.animationType === 'horizontal-left' || (config.direction === 'right' && config.animationType === 'horizontal-right');
+    const isRight = safeConfig.animationType === 'horizontal-left' || (safeConfig.direction === 'right' && safeConfig.animationType === 'horizontal-right');
+    const duration = speedVal * 2;
     return (
       <section className="overflow-hidden">
+        <style>{`
+          @keyframes marquee-left {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+          }
+          @keyframes marquee-right {
+            0% { transform: translateX(-50%); }
+            100% { transform: translateX(0%); }
+          }
+          .marquee-track {
+            animation: ${isRight ? 'marquee-right' : 'marquee-left'} ${duration}s linear infinite;
+            will-change: transform;
+          }
+          .marquee-track.paused {
+            animation-play-state: paused;
+          }
+        `}</style>
         <h2 className="text-3xl font-bold text-center mb-2">Customer Reviews</h2>
         <p className="text-center text-gray-500 mb-10">What our customers say</p>
         <div
           className="relative"
-          onMouseEnter={() => config.pauseOnHover && setIsPaused(true)}
-          onMouseLeave={() => config.pauseOnHover && setIsPaused(false)}
+          onMouseEnter={() => safeConfig.pauseOnHover && setIsPaused(true)}
+          onMouseLeave={() => safeConfig.pauseOnHover && setIsPaused(false)}
         >
-          <motion.div
-            className="flex gap-6"
-            animate={{
-              x: isPaused ? undefined : (isRight ? ['0%', '-50%'] : ['-50%', '0%']),
-            }}
-            transition={{
-              duration: speedVal * 2,
-              ease: 'linear',
-              repeat: Infinity,
-              repeatType: 'loop',
-            }}
-          >
+          <div className={`marquee-track flex gap-6 ${isPaused ? 'paused' : ''}`}>
             {[...reviews, ...reviews, ...reviews].map((review, i) => (
               <div key={`${review.id}-${i}`} className="min-w-[320px] md:min-w-[380px] flex-shrink-0">
                 <ReviewCard review={review} />
               </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
     );
   }
 
   // Floating cards
-  if (config.animationType === 'floating-cards') {
+  if (safeConfig.animationType === 'floating-cards') {
     return (
       <section>
         <h2 className="text-3xl font-bold text-center mb-2">Customer Reviews</h2>
@@ -204,7 +212,7 @@ export default function ReviewsSection() {
   }
 
   // Staggered cards
-  if (config.animationType === 'staggered-cards') {
+  if (safeConfig.animationType === 'staggered-cards') {
     return (
       <section>
         <h2 className="text-3xl font-bold text-center mb-2">Customer Reviews</h2>
@@ -226,7 +234,7 @@ export default function ReviewsSection() {
   }
 
   // Zig-zag motion
-  if (config.animationType === 'zig-zag') {
+  if (safeConfig.animationType === 'zig-zag') {
     return (
       <section>
         <h2 className="text-3xl font-bold text-center mb-2">Customer Reviews</h2>

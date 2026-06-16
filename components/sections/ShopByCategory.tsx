@@ -46,7 +46,7 @@ export default function ShopByCategory() {
         <h2 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Shop by Category</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {Array(6).fill(0).map((_, i) => (
-            <div key={i} className="aspect-square rounded-2xl bg-[#0b2a2b] animate-pulse" />
+            <div key={i} className="aspect-square rounded-sm bg-[#0b2a2b] animate-pulse" />
           ))}
         </div>
       </section>
@@ -69,7 +69,7 @@ export default function ShopByCategory() {
           <motion.div key={cat.id} variants={itemVariants}>
             <Link
               href={`/products?category=${cat.name}`}
-              className="group relative block aspect-square rounded-2xl overflow-hidden border border-[#1f3334] bg-[#0b2a2b]"
+              className="group relative block aspect-square rounded-sm overflow-hidden border border-[#1f3334] bg-[#0b2a2b]"
             >
               {/* Category Image */}
               {cat.image ? (

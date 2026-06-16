@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getPublicFooterSections } from '@/lib/firebase/footer';
 import { getFooterConfig, FooterConfig } from '@/lib/firebase/footerConfig';
 import { Facebook, Instagram, Youtube, MessageCircle } from 'lucide-react';
@@ -45,12 +46,43 @@ const STATIC_SECTIONS: SectionDisplay[] = [
   },
 ];
 
-/** Brand-specific payment method config — squircle card style with brand colors */
-const PAYMENT_BRANDS: Record<string, { label: string; bgClass: string; borderClass: string; textClass: string; icon: string }> = {
-  bkash: { label: 'bKash', bgClass: 'bg-pink-50 dark:bg-pink-950/40', borderClass: 'border-pink-200 dark:border-pink-800/50', textClass: 'text-pink-700 dark:text-pink-300', icon: 'bK' },
-  nagad: { label: 'Nagad', bgClass: 'bg-orange-50 dark:bg-orange-950/40', borderClass: 'border-orange-200 dark:border-orange-800/50', textClass: 'text-orange-700 dark:text-orange-300', icon: 'NG' },
-  rocket: { label: 'Rocket', bgClass: 'bg-purple-50 dark:bg-purple-950/40', borderClass: 'border-purple-200 dark:border-purple-800/50', textClass: 'text-purple-700 dark:text-purple-300', icon: 'RK' },
-  cod: { label: 'Cash on Delivery', bgClass: 'bg-gray-50 dark:bg-gray-800/40', borderClass: 'border-gray-200 dark:border-gray-700/50', textClass: 'text-gray-600 dark:text-gray-300', icon: 'COD' },
+/** Payment method config — actual brand images with squircle card style (squared, slight radius) */
+const PAYMENT_METHODS: Record<string, {
+  label: string;
+  bgClass: string;
+  borderClass: string;
+  imgSrc?: string;
+  isImage: boolean;
+  icon?: string;
+}> = {
+  cod: {
+    label: 'Cash on Delivery',
+    bgClass: 'bg-emerald-50 dark:bg-emerald-950/30',
+    borderClass: 'border-emerald-200 dark:border-emerald-800/40',
+    isImage: false,
+    icon: '$',
+  },
+  bkash: {
+    label: 'bKash',
+    bgClass: 'bg-pink-50 dark:bg-pink-950/30',
+    borderClass: 'border-pink-200 dark:border-pink-800/40',
+    imgSrc: '/bkash.svg',
+    isImage: true,
+  },
+  nagad: {
+    label: 'Nagad',
+    bgClass: 'bg-orange-50 dark:bg-orange-950/30',
+    borderClass: 'border-orange-200 dark:border-orange-800/40',
+    imgSrc: '/nagad.png',
+    isImage: true,
+  },
+  rocket: {
+    label: 'Rocket',
+    bgClass: 'bg-purple-50 dark:bg-purple-950/30',
+    borderClass: 'border-purple-200 dark:border-purple-800/40',
+    imgSrc: '/rocket.svg',
+    isImage: true,
+  },
 };
 
 const SOCIAL_ICONS: Record<string, { icon: typeof Facebook; color: string }> = {
@@ -104,17 +136,30 @@ export default function Footer() {
   const socialLinksArray = footerConfig?.socialLinksArray?.filter(sl => sl.isActive && sl.url) || [];
   const hasSocialArray = socialLinksArray.length > 0;
 
-  /** Render a single payment badge — squircle card style */
+  /** Render a single payment badge — squared card style, responsive for mobile */
   const renderPaymentBadge = (method: string) => {
-    const brand = PAYMENT_BRANDS[method];
-    if (!brand) return null;
+    const pm = PAYMENT_METHODS[method];
+    if (!pm) return null;
+
     return (
       <span
         key={method}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-semibold ${brand.bgClass} ${brand.borderClass} ${brand.textClass}`}
+        className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-md border text-[10px] sm:text-[11px] font-semibold shadow-sm ${pm.bgClass} ${pm.borderClass}`}
       >
-        <span className="text-[9px] font-bold tracking-tight">{brand.icon}</span>
-        {brand.label}
+        {pm.isImage && pm.imgSrc ? (
+          <span className="relative w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0">
+            <Image
+              src={pm.imgSrc}
+              alt={pm.label}
+              fill
+              className="object-contain"
+              sizes="(max-width: 640px) 16px, 20px"
+            />
+          </span>
+        ) : (
+          <span className="text-xs sm:text-sm font-bold leading-none">{pm.icon}</span>
+        )}
+        <span className="text-[10px] sm:text-[11px] leading-none whitespace-nowrap">{pm.label}</span>
       </span>
     );
   };
@@ -235,9 +280,9 @@ export default function Footer() {
               </div>
             )}
 
-            {/* Payment Method Badges — premium floating card */}
+            {/* Payment Method Badges — professional squared card style */}
             <div className="mt-5">
-              <div className="bg-white/70 dark:bg-[#0b2a2b]/60 backdrop-blur-sm rounded-2xl border border-gray-100 dark:border-[#1f3334]/60 shadow-[0_4px_16px_rgba(0,0,0,0.04),0_1px_4px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.3),0_1px_4px_rgba(0,0,0,0.15)] p-4 flex flex-wrap gap-2">
+              <div className="bg-white/70 dark:bg-[#0b2a2b]/60 backdrop-blur-sm rounded-md border border-gray-100 dark:border-[#1f3334]/60 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3),0_1px_2px_rgba(0,0,0,0.15)] p-3.5 flex flex-wrap gap-2">
                 {paymentMethodsKeys.map(method => renderPaymentBadge(method))}
               </div>
             </div>
@@ -270,13 +315,13 @@ export default function Footer() {
 
         {/* Bottom Bar — simplified without payment methods */}
         <div className="border-t border-gray-200 dark:border-[#1f3334] mt-8 md:mt-10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs md:text-sm text-gray-400 text-center md:text-left inline-flex items-center gap-0.5">
+          <p className="text-xs md:text-sm text-gray-400 text-center md:text-left inline-flex items-center gap-0">
             <img
               src="/luminnav.png"
               alt=""
-              className="h-[0.75rem] md:h-[0.875rem] w-auto object-contain inline-block dark:brightness-0 dark:invert"
+              className="h-[1.5rem] md:h-[1.5rem] w-auto object-contain inline-block dark:brightness-0 dark:invert"
             />
-            {currentYear} Amar Churighor. {footerConfig?.copyrightText || 'All rights reserved.'}
+            {currentYear} Lumin. {footerConfig?.copyrightText || 'All rights reserved.'}
           </p>
           <p className="text-[10px] md:text-xs text-gray-400 text-center">
             Made with ❤️ in Bangladesh
