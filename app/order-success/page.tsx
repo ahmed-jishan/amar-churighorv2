@@ -18,6 +18,7 @@ interface OrderSummary {
     price: number;
     quantity: number;
     image: string;
+    selectedSize?: number;
   }>;
   subtotal: number;
   deliveryCharge: number;
@@ -506,6 +507,7 @@ function SuccessContent() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
+                          {item.selectedSize && <p className="text-[11px] text-gray-400">Size: {item.selectedSize}</p>}
                           <p className="text-xs text-gray-500 dark:text-gray-400">×{item.quantity}</p>
                         </div>
                         <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 shrink-0">

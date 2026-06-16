@@ -412,8 +412,9 @@ export default function TrackOrderPage() {
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">×{item.quantity}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
+                    {item.selectedSize && <p className="text-xs text-gray-400">Size: {item.selectedSize}</p>}
+                    <p className="text-xs text-gray-500 dark:text-gray-400">×{item.quantity}</p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-900 dark:text-gray-100">{formatPrice(item.price * item.quantity)}</p>

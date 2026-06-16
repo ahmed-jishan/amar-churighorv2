@@ -30,6 +30,7 @@ export interface CustomerConfirmationData {
     name: string;
     quantity: number;
     price: number;
+    selectedSize?: number;
   }>;
   subtotal: number;
   deliveryCharge: number;
@@ -97,7 +98,7 @@ export function renderCustomerConfirmationHtml(data: CustomerConfirmationData): 
     .map(
       (item) => `
     <tr>
-      <td style="${objectToInlineStyles(STYLES.tableCell)}">${escapeHtml(item.name)}</td>
+      <td style="${objectToInlineStyles(STYLES.tableCell)}">${escapeHtml(item.name)}${(item as any).selectedSize ? ` <span style="color: #888; font-size: 12px;">(Size: ${(item as any).selectedSize})</span>` : ''}</td>
       <td style="${objectToInlineStyles(STYLES.tableCellCenter)}">${item.quantity}</td>
       <td style="${objectToInlineStyles(STYLES.tableCellRight)}">${formatPrice(item.price)}</td>
     </tr>

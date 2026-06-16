@@ -156,6 +156,7 @@ export default function AdminOrdersPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-gray-300 text-xs truncate">{item.name}</p>
+                        {item.selectedSize && <p className="text-gray-500 text-xs">Size: {item.selectedSize}</p>}
                         <p className="text-gray-500 text-xs">×{item.quantity}</p>
                       </div>
                       <span className="text-green-400 text-xs font-medium whitespace-nowrap">{formatPrice(item.price * item.quantity)}</span>
@@ -292,6 +293,8 @@ export default function AdminOrdersPage() {
                                   name: item.name,
                                   quantity: item.quantity,
                                   price: item.price,
+                                  image: item.image,
+                                  selectedSize: item.selectedSize,
                                 })),
                                 subtotal: selected.subtotal,
                                 deliveryCharge: selected.deliveryCharge,

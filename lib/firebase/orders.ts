@@ -13,6 +13,15 @@ import {
 
 const COLLECTION = 'orders';
 
+/** Strip undefined values from an object (Firestore rejects undefined fields) */
+function stripUndefined<T extends Record<string, any>>(obj: T): T {
+  const clean = { ...obj } as Record<string, any>;
+  Object.keys(clean).forEach(key => {
+    if (clean[key] === undefined) delete clean[key];
+  });
+  return clean as T;
+}
+
 function generateOrderId(): string {
   return 'AC' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 5).toUpperCase();
 }
@@ -35,8 +44,14 @@ export async function createOrder(data: Omit<Order, 'id' | 'orderId' | 'createdA
   }
 
   const trackingToken = crypto.randomUUID();
-  const ref = await addDoc(collection(db, COLLECTION), {
+  // Sanitize: Firestore cannot serialize undefined values
+  const cleanData = {
     ...data,
+    items: data.items.map(stripUndefined),
+    customer: stripUndefined(data.customer),
+  };
+  const ref = await addDoc(collection(db, COLLECTION), {
+    ...cleanData,
     orderId,
     anonymousId: getAnonymousId(),
     trackingToken,

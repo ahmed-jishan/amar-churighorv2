@@ -29,7 +29,9 @@ import {
   ArrowLeft,
   ArrowRight,
   RefreshCw,
+  Radio,
 } from 'lucide-react';
+import { getAnalyticsConfig, saveAnalyticsConfig } from '@/lib/firebase/settings';
 import {
   getAnalyticsSummary,
   getDailyTraffic,
@@ -344,6 +346,8 @@ export default function AnalyticsDashboardPage() {
   const [activeVisitors, setActiveVisitors] = useState(0);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState<AnalyticsDateFilter>('last-7-days');
+  const [trackingEnabled, setTrackingEnabled] = useState(true);
+  const [toggling, setToggling] = useState(false);
 
   // ─── Load data ───────────────────────────────────────────
 
@@ -407,6 +411,30 @@ export default function AnalyticsDashboardPage() {
     loadData();
   }, [loadData]);
 
+  // ─── Load analytics tracking toggle state ───────────────
+
+  useEffect(() => {
+    getAnalyticsConfig().then(config => {
+      setTrackingEnabled(config.trackingEnabled);
+    });
+  }, []);
+
+  // ─── Toggle tracking on/off ─────────────────────────────
+
+  const handleToggleTracking = useCallback(async () => {
+    if (toggling) return;
+    setToggling(true);
+    const newValue = !trackingEnabled;
+    try {
+      await saveAnalyticsConfig({ trackingEnabled: newValue });
+      setTrackingEnabled(newValue);
+    } catch (e) {
+      console.error('Failed to save analytics config:', e);
+    } finally {
+      setToggling(false);
+    }
+  }, [trackingEnabled, toggling]);
+
   // ─── Auto-refresh active visitors every 30s ─────────────
 
   useEffect(() => {
@@ -453,6 +481,20 @@ export default function AnalyticsDashboardPage() {
           <p className="text-gray-500 text-sm mt-1">Website visitor analytics dashboard</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Tracking Toggle */}
+          <button
+            onClick={handleToggleTracking}
+            disabled={toggling}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-colors ${
+              trackingEnabled
+                ? 'bg-green-900/30 border-green-600/50 text-green-400 hover:bg-green-900/50'
+                : 'bg-red-900/30 border-red-600/50 text-red-400 hover:bg-red-900/50'
+            }`}
+            title={trackingEnabled ? 'Click to pause tracking' : 'Click to resume tracking'}
+          >
+            <Radio className={`w-3.5 h-3.5 ${trackingEnabled ? 'animate-pulse' : ''}`} />
+            <span>{toggling ? '...' : trackingEnabled ? 'Tracking ON' : 'Tracking OFF'}</span>
+          </button>
           <DateFilterSelect value={dateFilter} onChange={setDateFilter} />
           <button
             onClick={loadData}

@@ -8,13 +8,24 @@ export interface StoreConfig {
   deliveryChargeOutside: number;
 }
 
+/** Analytics tracking toggle configuration */
+export interface AnalyticsConfig {
+  /** When false, AnalyticsTracker will skip all tracking events */
+  trackingEnabled: boolean;
+}
+
 const CONFIG_ID = 'store_config';
+const ANALYTICS_CONFIG_ID = 'analytics_config';
 
 const DEFAULT_CONFIG: StoreConfig = {
   contactEmails: ['hello@amarchurchighor.com'],
   contactPhones: ['+880 1XXXXXXXXX'],
   deliveryChargeInside: 80,
   deliveryChargeOutside: 130,
+};
+
+const DEFAULT_ANALYTICS_CONFIG: AnalyticsConfig = {
+  trackingEnabled: true,
 };
 
 export async function getStoreConfig(): Promise<StoreConfig> {
@@ -43,4 +54,28 @@ export async function saveStoreConfig(data: StoreConfig): Promise<void> {
     deliveryChargeOutside: Math.max(0, data.deliveryChargeOutside ?? DEFAULT_CONFIG.deliveryChargeOutside),
   };
   await setDoc(doc(db, 'settings', CONFIG_ID), sanitized);
+}
+
+/** Get the analytics tracking toggle config (default: enabled) */
+export async function getAnalyticsConfig(): Promise<AnalyticsConfig> {
+  try {
+    const snap = await getDoc(doc(db, 'settings', ANALYTICS_CONFIG_ID));
+    if (snap.exists()) {
+      const data = snap.data();
+      return {
+        trackingEnabled: data.trackingEnabled !== false, // default true
+      };
+    }
+    return DEFAULT_ANALYTICS_CONFIG;
+  } catch {
+    return DEFAULT_ANALYTICS_CONFIG;
+  }
+}
+
+/** Save the analytics tracking toggle config */
+export async function saveAnalyticsConfig(data: AnalyticsConfig): Promise<void> {
+  await setDoc(doc(db, 'settings', ANALYTICS_CONFIG_ID), {
+    trackingEnabled: data.trackingEnabled !== false,
+    updatedAt: new Date().toISOString(),
+  });
 }

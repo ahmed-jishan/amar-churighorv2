@@ -33,6 +33,7 @@ export interface AdminNotificationData {
     quantity: number;
     price: number;
     image?: string;
+    selectedSize?: number;
   }>;
   subtotal: number;
   deliveryCharge: number;
@@ -77,7 +78,7 @@ export function renderAdminNotificationHtml(data: AdminNotificationData): string
       (item) => `
     <tr>
       <td style="${objectToInlineStyles(STYLES.tableCell)}">
-        <span style="font-weight: 600;">${escapeHtml(item.name)}</span>
+        <span style="font-weight: 600;">${escapeHtml(item.name)}</span>${item.selectedSize ? ` <span style="font-size: 11px; color: ${BRAND.textMuted};">(Size: ${item.selectedSize})</span>` : ''}
         <br />
         <span style="font-size: 11px; color: ${BRAND.textMuted};">SKU: ${escapeHtml(item.productId)}</span>
       </td>

@@ -11,7 +11,7 @@
  * Privacy: No PII collected. IP is masked server-side.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import {
   getVisitorId,
@@ -34,12 +34,26 @@ import {
   where,
   limit,
   increment,
+  onSnapshot,
 } from 'firebase/firestore';
 
 const TRACKING_API = '/api/track';
 const HEARTBEAT_INTERVAL_MS = 60000; // 60 seconds
 const SESSION_TRACKED_KEY = 'analytic_session_tracked';
 const GPS_REQUESTED_KEY = 'analytic_gps_requested';
+
+// ─── Module-level tracking toggle (updated by onSnapshot) ─
+let _trackingEnabled = true;
+
+/** Check whether tracking is currently enabled (respects admin toggle) */
+function isTrackingEnabled(): boolean {
+  return _trackingEnabled;
+}
+
+/** Update the module-level tracking flag (called from component) */
+function setTrackingEnabledFlag(enabled: boolean) {
+  _trackingEnabled = enabled;
+}
 
 // ─── Cached GPS data (request once per session) ──────────
 let cachedGps: GpsLocationData | null | undefined = undefined; // undefined = not yet tried, null = failed, object = success
@@ -107,6 +121,8 @@ async function clientGeoLookup(): Promise<Record<string, any> | null> {
 
 async function sendTrackingEvent(body: Record<string, unknown>): Promise<void> {
   if (typeof window === 'undefined') return;
+  // Respect admin tracking toggle (checked at call-time for real-time responsiveness)
+  if (!isTrackingEnabled()) return;
   
   // Use sendBeacon for reliability on page unload
   if (body.type === 'endsession' && navigator.sendBeacon) {
@@ -316,6 +332,33 @@ export default function AnalyticsTracker() {
   const sessionTracked = useRef(false);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const trackingEnabledRef = useRef(true); // default enabled
+  const [trackingInitialized, setTrackingInitialized] = useState(false);
+
+  // ─── Real-time listener for tracking toggle ─────────────
+  useEffect(() => {
+    const unsub = onSnapshot(
+      doc(db, 'settings', 'analytics_config'),
+      (snap) => {
+        let enabled = true;
+        if (snap.exists()) {
+          const data = snap.data();
+          enabled = data.trackingEnabled !== false;
+        }
+        trackingEnabledRef.current = enabled;
+        setTrackingEnabledFlag(enabled);
+        setTrackingInitialized(true);
+      },
+      () => {
+        // Error/network issue — default to enabled so tracking still works
+        trackingEnabledRef.current = true;
+        setTrackingEnabledFlag(true);
+        setTrackingInitialized(true);
+      }
+    );
+    return () => unsub();
+  }, []);
+
 
   // Track session on first mount
   useEffect(() => {

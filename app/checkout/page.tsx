@@ -62,6 +62,7 @@ export default function CheckoutPage() {
         price: item.discountPrice ?? item.price,
         quantity: item.quantity,
         image: item.featuredImage || item.images[0] || '',
+        selectedSize: item.selectedSize,
       }));
 
       const { orderId, trackingToken } = await createOrder({
@@ -118,6 +119,7 @@ export default function CheckoutPage() {
             quantity: item.quantity,
             price: item.price,
             image: item.image,
+            selectedSize: item.selectedSize,
           })),
           subtotal: totalPrice,
           deliveryCharge,
@@ -380,18 +382,22 @@ export default function CheckoutPage() {
               <div className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-4 md:p-6 sticky top-24">
                 <h2 className="font-bold text-base md:text-lg mb-4">Order Summary</h2>
                 <div className="space-y-3 mb-4">
-                  {cart.map(item => (
-                    <div key={item.id} className="flex gap-3 items-center">
+                  {cart.map(item => {
+                    const itemKey = item.selectedSize ? `${item.id}__size_${item.selectedSize}` : item.id;
+                    return (
+                    <div key={itemKey} className="flex gap-3 items-center">
                       <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
                         <Image src={item.featuredImage || item.images[0] || '/placeholder.png'} alt={item.name} width={48} height={48} className="object-cover" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate">{item.name}</p>
-                        <p className="text-xs text-gray-400">×{item.quantity}</p>
-                      </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{item.name}</p>
+                      {item.selectedSize && <p className="text-[10px] text-gray-400">Size: {item.selectedSize}</p>}
+                      <p className="text-xs text-gray-400">×{item.quantity}</p>
+                    </div>
                       <p className="text-sm font-bold text-green-600 shrink-0">{formatPrice((item.discountPrice ?? item.price) * item.quantity)}</p>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div className="border-t border-[#1f3334] pt-4 space-y-2 text-sm">
                   <div className="flex justify-between"><span>Subtotal</span><span>{formatPrice(totalPrice)}</span></div>

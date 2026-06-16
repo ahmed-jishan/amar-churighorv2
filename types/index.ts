@@ -1,3 +1,7 @@
+/** Supported bangle sizes (extendable in future) */
+export const CHURI_SIZES = [22, 24, 26, 28, 30] as const;
+export type ChuriSize = (typeof CHURI_SIZES)[number];
+
 export type InventoryStatus = 'in_stock' | 'low_stock' | 'out_of_stock';
 
 export function computeInventoryStatus(available: number): InventoryStatus {
@@ -42,6 +46,8 @@ export interface Product {
   totalRevenue?: number;
   bestSellerScore?: number;
   lastCalculatedAt?: string;
+  /** Available bangle sizes for this product (e.g. [22, 24, 26, 28]). Undefined/null = size selection not required */
+  sizes?: number[];
 }
 
 export interface ProductCategory {
@@ -58,6 +64,8 @@ export interface ProductCategory {
 
 export interface CartItem extends Product {
   quantity: number;
+  /** Selected bangle size, if applicable */
+  selectedSize?: number;
 }
 
 export type OrderStatus =
@@ -75,6 +83,8 @@ export interface OrderItem {
   price: number;
   quantity: number;
   image: string;
+  /** Selected bangle size, saved at order time */
+  selectedSize?: number;
 }
 
 export interface Order {

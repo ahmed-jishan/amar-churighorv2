@@ -6,7 +6,7 @@ import { getProductBySlug } from '@/lib/firebase/products';
 import { useCart } from '@/context/CartContext';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { addRecentlyViewed } from '@/lib/recentlyViewed';
-import { Product } from '@/types';
+import { Product, CHURI_SIZES } from '@/types';
 import { formatPrice } from '@/lib/utils';
 import NeoButton from '@/components/ui/NeoButton';
 import { motion } from 'framer-motion';
@@ -38,6 +38,8 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
+  const [selectedSize, setSelectedSize] = useState<number | null>(null);
+  const [sizeError, setSizeError] = useState('');
   const { addToCart } = useCart();
   const { addItem } = useRecentlyViewed();
   const router = useRouter();
@@ -71,6 +73,7 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
   const images = product.images?.length ? product.images : [product.featuredImage || '/placeholder.png'];
   const price = product.discountPrice ?? product.price;
   const hasDiscount = product.discountPrice && product.discountPrice < product.price;
+  const hasSizes = product.sizes && product.sizes.length > 0;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -148,6 +151,33 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
             )}
           </div>
 
+          {/* Size Selector */}
+          {hasSizes && (
+            <div className="mb-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Select Size</p>
+              <div className="flex flex-wrap gap-2">
+                {CHURI_SIZES.filter(s => product.sizes!.includes(s)).map(size => (
+                  <button
+                    key={size}
+                    onClick={() => { setSelectedSize(size); setSizeError(''); }}
+                    className={`w-12 h-10 rounded-xl border-2 text-sm font-bold transition-all duration-200
+                      ${selectedSize === size
+                        ? 'bg-[#d7ffa4] text-[#1a1a1a] border-[#d7ffa4] shadow-[2px_2px_0px_#1a1a1a] dark:shadow-[2px_2px_0px_#c9a96e] scale-105'
+                        : 'bg-transparent text-gray-600 dark:text-gray-300 border-gray-300 dark:border-[#1f3334] hover:border-gray-500 dark:hover:border-gray-500 hover:scale-105'
+                      }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+              {sizeError && (
+                <p className="text-red-500 text-xs mt-1.5 font-medium flex items-center gap-1">
+                  <span>⚠</span> {sizeError}
+                </p>
+              )}
+            </div>
+          )}
+
           {product.tags?.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-4">
               {product.tags.map(tag => (
@@ -169,8 +199,12 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
               <NeoButton
                 text="Add to Cart"
                 onClick={e => {
+                  if (hasSizes && !selectedSize) {
+                    setSizeError('Please select a bangle size.');
+                    return;
+                  }
                   const img = document.querySelector('img[alt="' + product.name + '"]') as HTMLElement;
-                  addToCart(product, img ?? undefined);
+                  addToCart(product, img ?? undefined, selectedSize ?? undefined);
                 }}
                 className="w-full text-sm py-3 rounded-[12px]
                   bg-[#d7ffa4] text-[#1a1a1a] border-[#1a1a1a] shadow-[3px_3px_0px_#1a1a1a]

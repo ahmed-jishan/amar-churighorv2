@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { getProducts, createProduct, updateProduct, deleteProduct } from '@/lib/firebase/products';
 import { getCategories } from '@/lib/firebase/categories';
 import { uploadImage } from '@/lib/cloudinary';
-import { Product, ProductCategory, computeInventoryStatus } from '@/types';
+import { Product, ProductCategory, computeInventoryStatus, CHURI_SIZES } from '@/types';
 import { formatPrice } from '@/lib/utils';
 import { Plus, Pencil, Trash2, X, Search, Upload, Package } from 'lucide-react';
 import NeoButton from '@/components/ui/NeoButton';
@@ -31,6 +31,7 @@ export default function AdminProductsPage() {
     name: '', slug: '', category: '', description: '', price: '', discountPrice: '',
     sku: '', stock: '0', tags: '', isFeatured: false, isBestSeller: false, isCustomerFavorite: false, isActive: true,
   });
+  const [selectedSizes, setSelectedSizes] = useState<number[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
@@ -58,6 +59,7 @@ export default function AdminProductsPage() {
     setExistingImages([]);
     setNewImagePreviews([]);
     setUploadProgress(null);
+    setSelectedSizes([]);
   }
 
   function openEdit(product: Product) {
@@ -73,6 +75,7 @@ export default function AdminProductsPage() {
     setNewImages([]);
     setNewImagePreviews([]);
     setUploadProgress(null);
+    setSelectedSizes(product.sizes || []);
     setShowForm(true);
   }
 
@@ -115,6 +118,7 @@ export default function AdminProductsPage() {
         soldQuantity: 0,
         availableStock: stockValue,
         tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+        sizes: selectedSizes.length > 0 ? selectedSizes : [],
         images: uploaded,
         featuredImage: uploaded[0] || '',
         isFeatured: form.isFeatured,
@@ -136,9 +140,10 @@ export default function AdminProductsPage() {
           discountPrice: form.discountPrice ? Number(form.discountPrice) : null,
           sku: form.sku || `SKU-${Date.now()}`,
           stock: stockValue,
-          tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
-          images: uploaded,
-          featuredImage: uploaded[0] || '',
+        tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+        sizes: selectedSizes.length > 0 ? selectedSizes : [],
+        images: uploaded,
+        featuredImage: uploaded[0] || '',
           isFeatured: form.isFeatured,
           isBestSeller: form.isBestSeller,
           isCustomerFavorite: form.isCustomerFavorite,
@@ -371,6 +376,37 @@ export default function AdminProductsPage() {
                     {uploadProgress}
                   </div>
                 )}
+              </div>
+
+              {/* Available Sizes */}
+              <div>
+                <label className="block text-xs text-gray-500 uppercase mb-2">Available Bangle Sizes</label>
+                <div className="flex flex-wrap gap-2">
+                  {CHURI_SIZES.map(size => (
+                    <label key={size} className={`flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition text-sm ${
+                      selectedSizes.includes(size)
+                        ? 'bg-[#d7ffa4]/20 border-[#d7ffa4] text-[#d7ffa4]'
+                        : 'bg-[#0b2a2b] border-[#1f3334] text-gray-400 hover:border-gray-500'
+                    }`}>
+                      <input type="checkbox" checked={selectedSizes.includes(size)} onChange={() => {
+                        setSelectedSizes(prev =>
+                          prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size].sort((a, b) => a - b)
+                        );
+                      }} className="sr-only" />
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition ${
+                        selectedSizes.includes(size) ? 'bg-[#d7ffa4] border-[#d7ffa4]' : 'border-gray-500'
+                      }`}>
+                        {selectedSizes.includes(size) && (
+                          <svg className="w-3 h-3 text-[#051a1b]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                        )}
+                      </div>
+                      <span className="font-medium">{size}</span>
+                    </label>
+                  ))}
+                  {selectedSizes.length === 0 && (
+                    <span className="text-xs text-gray-500 self-center ml-1">None selected (size selection not required)</span>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-4">
