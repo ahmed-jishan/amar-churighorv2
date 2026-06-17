@@ -1,12 +1,17 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useProducts } from '@/hooks/useProducts';
 import ProductCard from '@/components/ui/ProductCard';
 import ProductSkeleton from '@/components/ui/ProductSkeleton';
-import { Tag, Gift, Percent, TrendingDown, ShoppingBag, ArrowUpDown, ChevronDown } from 'lucide-react';
+import CampaignCard from '@/components/ui/CampaignCard';
+import LiveCountdown from '@/components/ui/LiveCountdown';
+import { Tag, Gift, Percent, TrendingDown, ShoppingBag, ArrowUpDown, ChevronDown, Megaphone, Clock, Zap, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { computeOfferInfo } from '@/lib/offers/helpers';
+import { getActiveCampaigns } from '@/lib/firebase/campaigns';
+import { toCampaignCard, getCampaignDiscountLabel } from '@/lib/offers/campaignEngine';
 import type { Product } from '@/types';
+import type { Campaign, CampaignCardData } from '@/lib/offers/campaignTypes';
 
 // ── Sort Options ─────────────────────────────────────────────
 type SortKey = 'newest' | 'oldest' | 'discount-high' | 'discount-low' | 'price-low' | 'price-high';
@@ -182,10 +187,72 @@ function StatsBar({ totalOffers, highestDiscount }: { totalOffers: number; highe
   );
 }
 
+// ── Campaigns Section ─────────────────────────────────────────
+function CampaignsSection({ campaigns }: { campaigns: CampaignCardData[] }) {
+  if (campaigns.length === 0) return null;
+  return (
+    <section className="mb-10 md:mb-14">
+      <div className="flex items-center gap-2 mb-6">
+        <Megaphone className="w-5 h-5 text-[#d7ffa4]" />
+        <h2 className="text-xl md:text-2xl font-bold">Active Campaigns</h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        {campaigns.map((c, i) => (
+          <CampaignCard key={c.id} campaign={c} index={i} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Flash Sale Section ────────────────────────────────────────
+function FlashSaleSection({ campaigns }: { campaigns: CampaignCardData[] }) {
+  const flashSales = campaigns.filter(c => c.type === 'flash_sale');
+  if (flashSales.length === 0) return null;
+  const top = flashSales[0];
+  const label = getCampaignDiscountLabel(top);
+  return (
+    <section className="mb-10 md:mb-14">
+      <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-red-600/20 via-red-700/10 to-orange-600/20 border border-red-500/20 p-6 md:p-8 lg:p-10">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-red-500/10 to-transparent rounded-full blur-3xl" />
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="w-5 h-5 text-red-400" />
+              <span className="text-xs font-bold text-red-300 uppercase tracking-wider">Flash Sale</span>
+            </div>
+            <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-white">{top.title}</h2>
+            <p className="text-gray-300 text-sm mt-1">{top.description}</p>
+            <div className="text-3xl md:text-4xl font-extrabold text-red-400 mt-2">{label}</div>
+          </div>
+          {top.endDate && (
+            <div className="shrink-0">
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Ends in</span>
+              </div>
+              <LiveCountdown endDate={top.endDate} />
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Main Offers Page ──────────────────────────────────────────
 export default function OffersPage() {
   const { products, loading } = useProducts({ isActive: true });
   const [sortKey, setSortKey] = useState<SortKey>('discount-high');
+  const [campaignCards, setCampaignCards] = useState<CampaignCardData[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(true);
+
+  useEffect(() => {
+    getActiveCampaigns().then(campaigns => {
+      setCampaignCards(campaigns.map(toCampaignCard));
+      setCampaignsLoading(false);
+    }).catch(() => setCampaignsLoading(false));
+  }, []);
 
   // Filter offer products dynamically
   const offerProducts = useMemo(() => {
@@ -207,6 +274,14 @@ export default function OffersPage() {
   return (
     <div>
       <HeroSection />
+
+      {/* Dynamic Campaign Sections from Admin */}
+      {!campaignsLoading && campaignCards.length > 0 && (
+        <>
+          <FlashSaleSection campaigns={campaignCards} />
+          <CampaignsSection campaigns={campaignCards.filter(c => c.type !== 'flash_sale')} />
+        </>
+      )}
 
       {!loading && offerProducts.length > 0 && (
         <StatsBar totalOffers={offerProducts.length} highestDiscount={highestDiscount} />

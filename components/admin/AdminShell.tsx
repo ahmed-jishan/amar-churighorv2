@@ -7,7 +7,7 @@ import { logoutAdmin } from '@/lib/firebase/auth';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Tag, Home, ChevronRight,
   Layers, ImageIcon, ShieldCheck, FileText, MessageSquare, HelpCircle, Star, ChevronDown,
-  Menu, X, BarChart3, Activity
+  Menu, X, BarChart3, Activity, Megaphone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -111,6 +111,30 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               }`}>
               <Icon className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{label}</span>
+            </Link>
+          );
+        })}
+
+        {/* ── Marketing Section ── */}
+        <div className="pt-4 pb-1">
+          <div className="flex items-center gap-2 px-3 py-1">
+            <Megaphone className="w-4 h-4 text-[#d7ffa4] shrink-0" />
+            <span className="text-[10px] text-[#d7ffa4] uppercase tracking-wider font-semibold truncate">Marketing</span>
+          </div>
+        </div>
+
+        {[
+          { href: '/admin/marketing/campaigns', icon: Megaphone, label: 'Offer Campaigns', show: true },
+        ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
+          const active = pathname === href || pathname.startsWith(href + '/');
+          return (
+            <Link key={href} href={href}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ml-2 ${
+                active ? 'bg-[#d7ffa4] text-[#1a1a1a] font-semibold' : 'text-gray-400 hover:text-white hover:bg-[#0b2a2b]'
+              }`}>
+              <Icon className="w-4 h-4 shrink-0" />
+              <span className="truncate">{label}</span>
+              {active && <ChevronRight className="w-3 h-3 ml-auto shrink-0" />}
             </Link>
           );
         })}
@@ -252,6 +276,30 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 }`}>
                 <Icon className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">{label}</span>
+              </Link>
+            );
+          })}
+
+          {/* ── Marketing Section ── */}
+          <div className="pt-4 pb-1">
+            <div className="flex items-center gap-2 px-3 py-1">
+              <Megaphone className="w-4 h-4 text-[#d7ffa4]" />
+              <span className="text-[10px] text-[#d7ffa4] uppercase tracking-wider font-semibold">Marketing</span>
+            </div>
+          </div>
+
+          {[
+            { href: '/admin/marketing/campaigns', icon: Megaphone, label: 'Offer Campaigns', show: true },
+          ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
+            const active = pathname === href || pathname.startsWith(href + '/');
+            return (
+              <Link key={href} href={href}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ml-2 ${
+                  active ? 'bg-[#d7ffa4] text-[#1a1a1a] font-semibold' : 'text-gray-400 hover:text-white hover:bg-[#0b2a2b]'
+                }`}>
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="truncate">{label}</span>
+                {active && <ChevronRight className="w-3 h-3 ml-auto shrink-0" />}
               </Link>
             );
           })}

@@ -125,13 +125,6 @@
       ]
     },
     {
-      "collectionGroup": "newsletter_subscribers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "subscribedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "visitor_sessions",
       "queryScope": "COLLECTION",
       "fields": [
@@ -159,27 +152,6 @@
       "collectionGroup": "visitor_sessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "visitCount", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "visitor_sessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "sessionStart", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "visitor_sessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "visitorId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "visitor_sessions",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "sessionStart", "order": "ASCENDING" },
         { "fieldPath": "deviceType", "order": "ASCENDING" }
       ]
@@ -196,13 +168,6 @@
       "collectionGroup": "page_views",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "page_views",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "timestamp", "order": "ASCENDING" },
         { "fieldPath": "__name__", "order": "DESCENDING" }
       ]
@@ -219,15 +184,16 @@
       "collectionGroup": "product_views",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        { "fieldPath": "timestamp", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "product_views",
+      "collectionGroup": "campaigns",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "timestamp", "order": "ASCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
+        { "fieldPath": "priority", "order": "DESCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ],
