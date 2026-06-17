@@ -8,6 +8,7 @@ import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { addRecentlyViewed } from '@/lib/recentlyViewed';
 import { Product, CHURI_SIZES } from '@/types';
 import { formatPrice } from '@/lib/utils';
+import { computeOfferInfo } from '@/lib/offers/helpers';
 import NeoButton from '@/components/ui/NeoButton';
 import { motion } from 'framer-motion';
 import { Star, Package, ArrowLeft } from 'lucide-react';
@@ -71,8 +72,8 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
   if (!product) return notFound();
 
   const images = product.images?.length ? product.images : [product.featuredImage || '/placeholder.png'];
-  const price = product.discountPrice ?? product.price;
-  const hasDiscount = product.discountPrice && product.discountPrice < product.price;
+  const offer = computeOfferInfo(product.price, product.discountPrice);
+  const { isOffer, discountPercentage, savings, effectivePrice } = offer;
   const hasSizes = product.sizes && product.sizes.length > 0;
 
   return (
@@ -105,12 +106,17 @@ export default function ProductDetailClient({ params }: { params: Promise<{ slug
           <h1 className="text-xl md:text-2xl lg:text-3xl font-bold mb-3">{product.name}</h1>
 
           <div className="flex items-center flex-wrap gap-2 mb-4">
-            <span className="text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">{formatPrice(price)}</span>
-            {hasDiscount && <span className="text-sm text-gray-400 line-through">{formatPrice(product.price)}</span>}
-            {hasDiscount && (
-              <span className="text-xs bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-2 py-0.5 rounded-full font-semibold">
-                {Math.round(((product.price - product.discountPrice!) / product.price) * 100)}% off
-              </span>
+            <span className="text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">{formatPrice(effectivePrice)}</span>
+            {isOffer && <span className="text-sm text-gray-400 line-through">{formatPrice(product.price)}</span>}
+            {isOffer && (
+              <div className="flex items-center gap-2 flex-wrap w-full">
+                <span className="text-xs bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-2 py-0.5 rounded-full font-semibold">
+                  {discountPercentage}% OFF
+                </span>
+                <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                  Save {formatPrice(savings)}
+                </span>
+              </div>
             )}
           </div>
 

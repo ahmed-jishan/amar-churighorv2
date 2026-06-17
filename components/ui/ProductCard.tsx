@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import NeoButton from './NeoButton';
 import { formatPrice } from '@/lib/utils';
 import { triggerCartAnimation } from '@/lib/cartAnimation';
+import { computeOfferInfo } from '@/lib/offers/helpers';
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
@@ -20,8 +21,8 @@ export default function ProductCard({ product }: { product: Product }) {
     }
   };
 
-  const effectivePrice = product.discountPrice ?? product.price;
-  const hasDiscount = product.discountPrice && product.discountPrice < product.price;
+  const offer = computeOfferInfo(product.price, product.discountPrice);
+  const { isOffer, discountPercentage, savings, effectivePrice } = offer;
   const hasSizes = product.sizes && product.sizes.length > 0;
   const imageSrc = product.featuredImage || product.images[0] || '/placeholder.png';
 
@@ -40,9 +41,9 @@ export default function ProductCard({ product }: { product: Product }) {
         {product.isNewArrival && (
           <span className="absolute top-2 left-2 z-10 text-[10px] bg-[#d7ffa4] text-[#1a1a1a] font-bold px-1.5 py-0.5 rounded-full border border-[#1a1a1a] leading-tight">New</span>
         )}
-        {hasDiscount && (
+        {isOffer && (
           <span className="absolute top-2 right-2 z-10 text-[10px] bg-red-500 text-white font-bold px-1.5 py-0.5 rounded-full leading-tight">
-            -{Math.round(((product.price - product.discountPrice!) / product.price) * 100)}%
+            -{discountPercentage}%
           </span>
         )}
         <Image
@@ -59,7 +60,7 @@ export default function ProductCard({ product }: { product: Product }) {
         <h3 className="text-sm font-semibold line-clamp-2 leading-snug">{product.name}</h3>
         <div className="flex items-center gap-1.5">
           <span className="text-sm font-bold text-green-600 dark:text-green-400">{formatPrice(effectivePrice)}</span>
-          {hasDiscount && (
+          {isOffer && (
             <span className="text-[11px] text-gray-400 line-through">{formatPrice(product.price)}</span>
           )}
         </div>

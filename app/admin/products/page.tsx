@@ -290,14 +290,17 @@ export default function AdminProductsPage() {
                     className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 uppercase mb-1">Price *</label>
+                  <label className="block text-xs text-gray-500 uppercase mb-1">Regular Price *</label>
                   <input type="number" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
                     className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 uppercase mb-1">Discount Price</label>
+                  <label className="block text-xs text-gray-500 uppercase mb-1">Sale Price <span className="text-gray-500 font-normal">(set to activate offer)</span></label>
                   <input type="number" value={form.discountPrice} onChange={e => setForm(f => ({ ...f, discountPrice: e.target.value }))}
                     className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm" />
+                  {form.price && form.discountPrice && Number(form.discountPrice) > 0 && Number(form.discountPrice) < Number(form.price) && (
+                    <p className="text-xs text-green-400 mt-1.5">✓ Offer active — {Math.round(((Number(form.price) - Number(form.discountPrice)) / Number(form.price)) * 100)}% OFF</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 uppercase mb-1">Stock / Initial Inventory</label>
