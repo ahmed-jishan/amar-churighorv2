@@ -7,6 +7,7 @@ import { CheckCircle, Package, ClipboardList, ArrowRight, ShoppingBag, MapPin, P
 import { Suspense, useEffect, useState } from 'react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
+import RewardCelebration from '@/components/loyalty/RewardCelebration';
 
 // ── Order Summary Interface ───────────────────────────────────
 interface OrderSummary {
@@ -36,6 +37,15 @@ interface OrderSummary {
   emailSentAt?: string;
   emailCustomerSuccess?: boolean;
   emailAdminSuccess?: boolean;
+  /** Newly unlocked reward (set by checkout if applicable) */
+  newlyUnlockedReward?: {
+    couponCode: string;
+    discountType: 'percentage' | 'fixed';
+    discountValue: number;
+    campaignName: string;
+    expiresAt: string;
+    milestone: number;
+  } | null;
 }
 
 function formatPrice(amount: number): string {
@@ -573,6 +583,18 @@ function SuccessContent() {
               </div>
             </div>
           </motion.div>
+        )}
+
+        {/* ── Reward Celebration ── */}
+        {orderSummary?.newlyUnlockedReward && (
+          <RewardCelebration
+            couponCode={orderSummary.newlyUnlockedReward.couponCode}
+            discountType={orderSummary.newlyUnlockedReward.discountType}
+            discountValue={orderSummary.newlyUnlockedReward.discountValue}
+            campaignName={orderSummary.newlyUnlockedReward.campaignName}
+            expiresAt={orderSummary.newlyUnlockedReward.expiresAt}
+            milestone={orderSummary.newlyUnlockedReward.milestone}
+          />
         )}
 
         {/* What Happens Next */}

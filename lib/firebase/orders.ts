@@ -10,6 +10,7 @@ import {
   incrementProductSalesStats,
   decrementProductSalesStats,
 } from '@/lib/bestSellerEngine';
+import { processLoyaltyAfterDelivery } from '@/lib/loyalty/customerService';
 
 const COLLECTION = 'orders';
 
@@ -121,6 +122,20 @@ export async function updateOrderStatus(id: string, status: OrderStatus, note?: 
     for (const item of order.items) {
       const itemRevenue = item.price * item.quantity;
       await incrementProductSalesStats(item.productId, item.quantity, itemRevenue);
+    }
+
+    // ── Loyalty Reward: Process customer reward after delivery ──
+    if (order.customer?.email && order.customer?.phone) {
+      try {
+        await processLoyaltyAfterDelivery(
+          order.customer.email,
+          order.customer.phone,
+          order.total,
+          order.createdAt
+        );
+      } catch (e) {
+        console.warn('[Loyalty] Failed to process loyalty after delivery:', e);
+      }
     }
   }
   // When status changes FROM 'delivered' to something else (e.g. cancelled): decrement

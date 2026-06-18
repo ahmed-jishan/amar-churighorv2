@@ -10,9 +10,10 @@ import { getStoreConfig, StoreConfig } from '@/lib/firebase/settings';
 import { formatPrice, DISTRICTS } from '@/lib/utils';
 import Image from 'next/image';
 import NeoButton from '@/components/ui/NeoButton';
-import { MapPin, Phone, User, Mail, FileText, Loader2, CheckCircle2, Lock, PartyPopper } from 'lucide-react';
+import { MapPin, Phone, User, Mail, FileText, Loader2, CheckCircle2, Lock, PartyPopper, Award, Ticket } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import CustomerRewardsPanel from '@/components/loyalty/CustomerRewardsPanel';
 
 export default function CheckoutPage() {
   const { cart, totalPrice, clearCart } = useCart();
@@ -369,6 +370,9 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
+              {/* Rewards (auto-detected when email+phone filled) */}
+              <RewardsSection email={watch('email')} phone={watch('phone')} />
+
               {/* Notes */}
               <div className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-4 md:p-6">
                 <h2 className="font-bold text-base md:text-lg mb-4 flex items-center gap-2"><FileText className="w-5 h-5" />Order Notes</h2>
@@ -423,5 +427,62 @@ export default function CheckoutPage() {
         </form>
       </div>
     </>
+  );
+}
+
+// ── Rewards Section: auto-detects rewards when email+phone are filled ──
+function RewardsSection({ email, phone }: { email: string; phone: string }) {
+  const [rewards, setRewards] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [debouncedEmail, setDebouncedEmail] = useState('');
+  const [debouncedPhone, setDebouncedPhone] = useState('');
+
+  // Debounce email+phone to avoid excessive API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedEmail(email);
+      setDebouncedPhone(phone);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [email, phone]);
+
+  useEffect(() => {
+    if (!debouncedEmail || !debouncedPhone) {
+      setRewards([]);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    fetch(`/api/loyalty/customer-rewards?email=${encodeURIComponent(debouncedEmail)}&phone=${encodeURIComponent(debouncedPhone)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!cancelled) {
+          setRewards(data.success ? data.rewards : []);
+          setLoading(false);
+        }
+      })
+      .catch(() => { if (!cancelled) { setRewards([]); setLoading(false); } });
+    return () => { cancelled = true; };
+  }, [debouncedEmail, debouncedPhone]);
+
+  if (!rewards.length && !loading) return null;
+
+  return (
+    <div className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-4 md:p-6">
+      <div className="flex items-center gap-2 mb-3">
+        <Award className="w-4 h-5 text-[#d7ffa4]" />
+        <h2 className="font-bold text-base md:text-lg">Available Rewards</h2>
+      </div>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+        Reward coupons found for this email & phone. Apply below to save on this order.
+      </p>
+      <CustomerRewardsPanel
+        rewards={rewards}
+        loading={loading}
+        checkoutMode={false}
+        email={email}
+        phone={phone}
+      />
+    </div>
   );
 }

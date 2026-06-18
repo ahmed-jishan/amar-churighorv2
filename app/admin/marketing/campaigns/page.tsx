@@ -362,6 +362,21 @@ export default function AdminCampaignsPage() {
                       <input type="number" value={form.minCompletedOrders || ''} onChange={e => setForm(f => ({ ...f, minCompletedOrders: Number(e.target.value) }))}
                         className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm" placeholder="e.g. 10" />
                     </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 uppercase mb-1">Coupon Code</label>
+                      <input value={form.couponCode || ''} onChange={e => setForm(f => ({ ...f, couponCode: e.target.value.toUpperCase() }))}
+                        className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm font-mono font-bold" placeholder="e.g. VIP10" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 uppercase mb-1">Reward Validity (Days)</label>
+                      <input type="number" value={form.expiresAfterDays || ''} onChange={e => setForm(f => ({ ...f, expiresAfterDays: Number(e.target.value) }))}
+                        className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm" placeholder="e.g. 30" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 uppercase mb-1">Reward Label</label>
+                      <input value={form.badgeText || ''} onChange={e => setForm(f => ({ ...f, badgeText: e.target.value }))}
+                        className="w-full p-3 bg-[#0b2a2b] border border-[#1f3334] rounded-xl text-white outline-none focus:border-green-500 text-sm" placeholder="e.g. VIP Customer Reward" />
+                    </div>
                   </div>
                 </div>
               )}

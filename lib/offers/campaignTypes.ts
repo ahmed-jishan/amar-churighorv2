@@ -56,6 +56,10 @@ export interface Campaign {
   comboLabel?: string;
   /** For festival: theme color */
   themeColor?: string;
+  /** Loyalty Reward: coupon code (e.g. VIP10) */
+  couponCode?: string;
+  /** Loyalty Reward: how many days the reward is valid after unlock */
+  expiresAfterDays?: number;
   /** Metadata */
   createdAt: string;
   updatedAt: string;

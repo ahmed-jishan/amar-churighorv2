@@ -5,7 +5,8 @@ import ProductCard from '@/components/ui/ProductCard';
 import ProductSkeleton from '@/components/ui/ProductSkeleton';
 import CampaignCard from '@/components/ui/CampaignCard';
 import LiveCountdown from '@/components/ui/LiveCountdown';
-import { Tag, Gift, Percent, TrendingDown, ShoppingBag, ArrowUpDown, ChevronDown, Megaphone, Clock, Zap, Star } from 'lucide-react';
+import CustomerRewardsPanel from '@/components/loyalty/CustomerRewardsPanel';
+import { Tag, Gift, Percent, TrendingDown, ShoppingBag, ArrowUpDown, ChevronDown, Megaphone, Clock, Zap, Star, Award, Mail, Phone, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { computeOfferInfo } from '@/lib/offers/helpers';
 import { getActiveCampaigns } from '@/lib/firebase/campaigns';
@@ -240,6 +241,88 @@ function FlashSaleSection({ campaigns }: { campaigns: CampaignCardData[] }) {
   );
 }
 
+// ── Customer Rewards Lookup Section ───────────────────────────
+function CustomerRewardsSection() {
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [rewards, setRewards] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+
+  const handleLookup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !phone) return;
+    setLoading(true);
+    setSearched(true);
+    try {
+      const res = await fetch(
+        `/api/loyalty/customer-rewards?email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`
+      );
+      const data = await res.json();
+      if (data.success) {
+        setRewards(data.rewards);
+      } else {
+        setRewards([]);
+      }
+    } catch {
+      setRewards([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section className="mb-10 md:mb-14">
+      <div className="bg-white dark:bg-[#0b2a2b] border border-[#1f3334] rounded-2xl p-6 md:p-8">
+        <div className="flex items-center gap-2 mb-4">
+          <Award className="w-5 h-5 text-[#d7ffa4]" />
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Your Rewards</h2>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Enter your email and phone number used during checkout to view your available rewards.
+        </p>
+        
+        <form onSubmit={handleLookup} className="flex flex-col sm:flex-row gap-3 mb-4">
+          <div className="flex-1 relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="Email address"
+              className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-[#051a1b] border border-[#1f3334] rounded-xl text-sm outline-none focus:border-green-500 transition"
+            />
+          </div>
+          <div className="flex-1 relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="Phone number"
+              className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-[#051a1b] border border-[#1f3334] rounded-xl text-sm outline-none focus:border-green-500 transition"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={!email || !phone || loading}
+            className="px-5 py-2.5 bg-[#d7ffa4] text-[#051a1b] font-semibold rounded-xl hover:bg-[#c5f090] disabled:opacity-50 disabled:cursor-not-allowed transition text-sm whitespace-nowrap"
+          >
+            {loading ? 'Searching...' : 'View Rewards'}
+          </button>
+        </form>
+
+        <CustomerRewardsPanel
+          rewards={rewards}
+          loading={loading}
+          email={email}
+          phone={phone}
+        />
+      </div>
+    </section>
+  );
+}
+
 // ── Main Offers Page ──────────────────────────────────────────
 export default function OffersPage() {
   const { products, loading } = useProducts({ isActive: true });
@@ -274,6 +357,9 @@ export default function OffersPage() {
   return (
     <div>
       <HeroSection />
+
+      {/* Customer Rewards Lookup */}
+      <CustomerRewardsSection />
 
       {/* Dynamic Campaign Sections from Admin */}
       {!campaignsLoading && campaignCards.length > 0 && (
