@@ -73,7 +73,11 @@ export async function sendRewardUnlockEmail(reward: CustomerReward): Promise<{ s
 </html>`;
 
     // Send via API to avoid server-side Nodemailer dependency in client context
-    const baseUrlForApi = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    // Use window.location.origin when running in browser, fall back to env var
+    const isClient = typeof window !== 'undefined';
+    const baseUrlForApi = isClient
+      ? window.location.origin
+      : (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000');
     const response = await fetch(`${baseUrlForApi}/api/send-reward-email`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

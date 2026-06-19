@@ -10,10 +10,19 @@ import { getStoreConfig, StoreConfig } from '@/lib/firebase/settings';
 import { formatPrice, DISTRICTS } from '@/lib/utils';
 import Image from 'next/image';
 import NeoButton from '@/components/ui/NeoButton';
-import { MapPin, Phone, User, Mail, FileText, Loader2, CheckCircle2, Lock, PartyPopper, Award, Ticket } from 'lucide-react';
+import { MapPin, Phone, User, Mail, FileText, Loader2, CheckCircle2, Lock, PartyPopper, Award, Ticket, X, Percent } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import CustomerRewardsPanel from '@/components/loyalty/CustomerRewardsPanel';
+
+interface AppliedReward {
+  id: string;
+  couponCode: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  discountAmount: number;
+  campaignName: string;
+}
 
 export default function CheckoutPage() {
   const { cart, totalPrice, clearCart } = useCart();
@@ -21,6 +30,7 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [isDhaka, setIsDhaka] = useState(true);
+  const [appliedReward, setAppliedReward] = useState<AppliedReward | null>(null);
   const submitLockRef = useRef(false);
   const redirectRef = useRef(false);
 
@@ -38,7 +48,10 @@ export default function CheckoutPage() {
   const deliveryCharge = district === 'Dhaka'
     ? (storeConfig?.deliveryChargeInside ?? 80)
     : (storeConfig?.deliveryChargeOutside ?? 130);
-  const grandTotal = totalPrice + deliveryCharge;
+
+  // Calculate discount and effective total
+  const discountAmount = appliedReward?.discountAmount ?? 0;
+  const grandTotal = totalPrice + deliveryCharge - discountAmount;
 
   const [redirected, setRedirected] = useState(false);
   useEffect(() => {
@@ -49,6 +62,32 @@ export default function CheckoutPage() {
   }, [cart.length, redirected, router]);
 
   if (cart.length === 0) return null;
+
+  /** Calculate discount from a reward and apply it */
+  const handleApplyReward = (reward: {
+    id: string;
+    couponCode: string;
+    discountType: 'percentage' | 'fixed';
+    discountValue: number;
+    campaignName: string;
+  }) => {
+    let amount = 0;
+    if (reward.discountType === 'percentage') {
+      amount = Math.round(totalPrice * (reward.discountValue / 100) * 100) / 100;
+    } else {
+      amount = Math.min(reward.discountValue, totalPrice);
+    }
+    setAppliedReward({
+      ...reward,
+      discountAmount: amount,
+    });
+    toast.success(`✨ Coupon ${reward.couponCode} applied! You save ${formatPrice(amount)}`);
+  };
+
+  const handleRemoveReward = () => {
+    setAppliedReward(null);
+    toast('Coupon removed');
+  };
 
   const onSubmit = async (data: CheckoutFormData) => {
     // Prevent duplicate submissions
@@ -75,7 +114,17 @@ export default function CheckoutPage() {
         status: 'pending',
       });
 
-      // Save full order data for the success page in sessionStorage
+      // ── Mark the applied reward as used (fire-and-forget — never fail order) ──
+      if (appliedReward) {
+        try {
+          const { applyReward } = await import('@/lib/loyalty/customerService');
+          await applyReward(appliedReward.id, orderId, totalPrice);
+        } catch (e) {
+          console.warn('[Checkout] Failed to mark reward as used:', e);
+        }
+      }
+
+      // Save full order data for the success page
       const orderSummary = {
         orderId,
         trackingToken,
@@ -94,15 +143,23 @@ export default function CheckoutPage() {
           district: data.district,
           area: data.area,
         },
+        // Store applied reward info for success page
+        ...(appliedReward ? {
+          appliedReward: {
+            couponCode: appliedReward.couponCode,
+            discountType: appliedReward.discountType,
+            discountValue: appliedReward.discountValue,
+            discountAmount: appliedReward.discountAmount,
+            campaignName: appliedReward.campaignName,
+          }
+        } : {}),
       };
       sessionStorage.setItem('lastOrder', JSON.stringify(orderSummary));
 
       // Mark order as complete — modal transitions to success state
       setOrderComplete(true);
 
-      // Send email via the notify-order API (customer confirmation + admin notification)
-      // This is fire-and-forget — never fails the order placement
-      const paymentMethod = 'Cash on Delivery';
+      // Send email via the notify-order API (fire-and-forget)
       fetch('/api/notify-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,7 +185,7 @@ export default function CheckoutPage() {
           area: data.area,
           address: data.address,
           notes: data.notes || undefined,
-          paymentMethod,
+          paymentMethod: 'Cash on Delivery',
           orderStatus: 'pending',
         }),
       })
@@ -137,7 +194,6 @@ export default function CheckoutPage() {
           if (!result.success) {
             console.warn('Email notification failed:', result.error);
           } else if (result.details) {
-            // Store email status in sessionStorage for success page
             try {
               const stored = sessionStorage.getItem('lastOrder');
               if (stored) {
@@ -148,19 +204,71 @@ export default function CheckoutPage() {
                 sessionStorage.setItem('lastOrder', JSON.stringify(parsed));
               }
             } catch {}
-            if (!result.details.customer.success) {
-              console.warn('Customer email failed:', result.details.customer.error);
-            }
-            if (!result.details.admin.success) {
-              console.warn('Admin notification failed:', result.details.admin.error);
-            }
           }
         })
         .catch(err => console.warn('Email send error (non-blocking):', err));
 
+      // ── Loyalty reward processing (synchronously awaited) ──
+      let unlockedReward: any = null;
+      try {
+        const { processLoyaltyAfterDelivery } = await import('@/lib/loyalty/customerService');
+        const loyaltyResult = await processLoyaltyAfterDelivery(
+          data.email,
+          data.phone,
+          grandTotal,
+          new Date().toISOString()
+        );
+        unlockedReward = loyaltyResult.reward;
+        if (loyaltyResult.profile) {
+          (unlockedReward as any)._completedOrders = loyaltyResult.profile.completedOrders;
+        }
+      } catch (err) {
+        console.warn('Loyalty reward processing skipped (non-blocking):', err);
+      }
+
+      // Write reward to sessionStorage
+      if (unlockedReward) {
+        try {
+          const stored = sessionStorage.getItem('lastOrder');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            parsed.newlyUnlockedReward = {
+              couponCode: unlockedReward.couponCode,
+              discountType: unlockedReward.discountType,
+              discountValue: unlockedReward.discountValue,
+              campaignName: unlockedReward.campaignName,
+              expiresAt: unlockedReward.expiresAt,
+              milestone: (unlockedReward as any)._completedOrders || 1,
+            };
+            sessionStorage.setItem('lastOrder', JSON.stringify(parsed));
+          }
+        } catch {}
+      }
+
+      // Non-loyalty campaign usage tracking (fire-and-forget)
+      (async () => {
+        try {
+          const { getActiveCampaigns, incrementCampaignUsage } = await import('@/lib/firebase/campaigns');
+          const activeCampaigns = await getActiveCampaigns();
+          if (activeCampaigns.length > 0) {
+            const applicable = activeCampaigns.find(c => {
+              if (c.type === 'loyalty') return false;
+              if (c.minOrderAmount && grandTotal < c.minOrderAmount) return false;
+              if (c.firstOrderOnly) return true;
+              if (c.type === 'combo' && c.comboMinQty && cart.length < c.comboMinQty) return false;
+              return true;
+            });
+            if (applicable) {
+              await incrementCampaignUsage(applicable.id);
+            }
+          }
+        } catch (err) {
+          console.warn('Campaign usage tracking skipped (non-blocking):', err);
+        }
+      })();
+
       clearCart();
 
-      // Wait 1.5 seconds so the user sees the success animation, then redirect
       setTimeout(() => {
         if (redirectRef.current) return;
         redirectRef.current = true;
@@ -169,12 +277,7 @@ export default function CheckoutPage() {
     } catch (e: any) {
       toast.error(e.message || 'Failed to place order. Please try again.', {
         duration: 6000,
-        style: {
-          background: '#fee2e2',
-          color: '#991b1b',
-          borderRadius: '12px',
-          fontWeight: '600',
-        },
+        style: { background: '#fee2e2', color: '#991b1b', borderRadius: '12px', fontWeight: '600' },
       });
       setSubmitting(false);
       submitLockRef.current = false;
@@ -200,7 +303,6 @@ export default function CheckoutPage() {
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               className="bg-white dark:bg-[#0b2a2b] rounded-3xl border border-gray-200 dark:border-[#1f3334] p-8 md:p-10 mx-4 max-w-sm w-full shadow-2xl text-center"
             >
-              {/* Animated icon */}
               <motion.div
                 animate={orderComplete ? { scale: [1, 1.2, 1] } : {}}
                 transition={{ duration: 0.5 }}
@@ -242,7 +344,6 @@ export default function CheckoutPage() {
                   : 'Please wait while we process your order securely.'}
               </p>
 
-              {/* Processing steps */}
               <div className="space-y-3 text-left">
                 {[
                   { label: 'Validating information', done: orderComplete || true },
@@ -285,7 +386,6 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
-              {/* Success summary — shown briefly before redirect */}
               {orderComplete && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -298,7 +398,6 @@ export default function CheckoutPage() {
                 </motion.div>
               )}
 
-              {/* Secure badge */}
               <div className="mt-5 flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-gray-500">
                 <Lock className="w-3 h-3" />
                 Secured with end-to-end encryption
@@ -370,8 +469,14 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Rewards (auto-detected when email+phone filled) */}
-              <RewardsSection email={watch('email')} phone={watch('phone')} />
+              {/* Rewards Section — enabled with Apply button */}
+              <RewardsSection
+                email={watch('email')}
+                phone={watch('phone')}
+                appliedReward={appliedReward}
+                onApplyReward={handleApplyReward}
+                onRemoveReward={handleRemoveReward}
+              />
 
               {/* Notes */}
               <div className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-4 md:p-6">
@@ -406,8 +511,32 @@ export default function CheckoutPage() {
                 <div className="border-t border-[#1f3334] pt-4 space-y-2 text-sm">
                   <div className="flex justify-between"><span>Subtotal</span><span>{formatPrice(totalPrice)}</span></div>
                   <div className="flex justify-between"><span>Delivery Charge</span><span>{formatPrice(deliveryCharge)}</span></div>
+
+                  {/* Discount line — shown when coupon applied */}
+                  {appliedReward && (
+                    <div className="flex justify-between text-green-600 dark:text-green-400 font-medium">
+                      <span className="flex items-center gap-1">
+                        <Percent className="w-3 h-3" />
+                        Discount ({appliedReward.couponCode})
+                      </span>
+                      <span>-{formatPrice(discountAmount)}</span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between font-bold text-base border-t border-[#1f3334] pt-2 mt-2">
-                    <span>Total</span><span className="text-green-600 dark:text-green-400">{formatPrice(grandTotal)}</span>
+                    <span>Total</span>
+                    <span className="text-green-600 dark:text-green-400">
+                      {appliedReward ? (
+                        <span className="flex items-center gap-1">
+                          <span className="line-through text-gray-400 dark:text-gray-500 text-xs mr-1">
+                            {formatPrice(totalPrice + deliveryCharge)}
+                          </span>
+                          {formatPrice(grandTotal)}
+                        </span>
+                      ) : (
+                        formatPrice(grandTotal)
+                      )}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-4 text-xs text-gray-500 bg-gray-50 dark:bg-[#051a1b] p-3 rounded-xl">
@@ -430,14 +559,26 @@ export default function CheckoutPage() {
   );
 }
 
-// ── Rewards Section: auto-detects rewards when email+phone are filled ──
-function RewardsSection({ email, phone }: { email: string; phone: string }) {
+// ── Rewards Section ──
+function RewardsSection({
+  email,
+  phone,
+  appliedReward,
+  onApplyReward,
+  onRemoveReward,
+}: {
+  email: string;
+  phone: string;
+  appliedReward: AppliedReward | null;
+  onApplyReward: (reward: any) => void;
+  onRemoveReward: () => void;
+}) {
   const [rewards, setRewards] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [debouncedEmail, setDebouncedEmail] = useState('');
   const [debouncedPhone, setDebouncedPhone] = useState('');
 
-  // Debounce email+phone to avoid excessive API calls
+  // Debounce email+phone
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedEmail(email);
@@ -446,6 +587,7 @@ function RewardsSection({ email, phone }: { email: string; phone: string }) {
     return () => clearTimeout(timer);
   }, [email, phone]);
 
+  // Fetch rewards when email+phone settle
   useEffect(() => {
     if (!debouncedEmail || !debouncedPhone) {
       setRewards([]);
@@ -457,15 +599,22 @@ function RewardsSection({ email, phone }: { email: string; phone: string }) {
       .then(res => res.json())
       .then(data => {
         if (!cancelled) {
-          setRewards(data.success ? data.rewards : []);
+          // Filter out already applied reward
+          let rewardList = data.success ? data.rewards : [];
+          if (appliedReward) {
+            rewardList = rewardList.filter((r: any) => r.id !== appliedReward.id);
+          }
+          setRewards(rewardList);
           setLoading(false);
         }
       })
       .catch(() => { if (!cancelled) { setRewards([]); setLoading(false); } });
     return () => { cancelled = true; };
-  }, [debouncedEmail, debouncedPhone]);
+  }, [debouncedEmail, debouncedPhone, appliedReward]);
 
-  if (!rewards.length && !loading) return null;
+  const showSection = debouncedEmail && debouncedPhone && !loading && (rewards.length > 0 || appliedReward);
+
+  if (!showSection) return null;
 
   return (
     <div className="bg-white dark:bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-4 md:p-6">
@@ -473,16 +622,44 @@ function RewardsSection({ email, phone }: { email: string; phone: string }) {
         <Award className="w-4 h-5 text-[#d7ffa4]" />
         <h2 className="font-bold text-base md:text-lg">Available Rewards</h2>
       </div>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-        Reward coupons found for this email & phone. Apply below to save on this order.
-      </p>
-      <CustomerRewardsPanel
-        rewards={rewards}
-        loading={loading}
-        checkoutMode={false}
-        email={email}
-        phone={phone}
-      />
+
+      {/* Applied coupon badge */}
+      {appliedReward && (
+        <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/30 rounded-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Ticket className="w-4 h-4 text-green-600 dark:text-green-400" />
+              <div>
+                <p className="text-xs font-semibold text-green-700 dark:text-green-300">
+                  {appliedReward.couponCode} Applied
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400">
+                  You save {formatPrice(appliedReward.discountAmount)}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onRemoveReward}
+              className="p-1 hover:bg-green-100 dark:hover:bg-green-800/30 rounded-lg transition-colors"
+              title="Remove coupon"
+            >
+              <X className="w-4 h-4 text-green-600 dark:text-green-400" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Available rewards (with Apply button) */}
+      {rewards.length > 0 && (
+        <CustomerRewardsPanel
+          rewards={rewards}
+          loading={loading}
+          checkoutMode={true}
+          onApplyReward={onApplyReward}
+          email={email}
+          phone={phone}
+        />
+      )}
     </div>
   );
 }

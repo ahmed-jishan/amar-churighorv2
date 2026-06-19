@@ -15,8 +15,8 @@ import type {
   RewardValidation,
   CouponApplicationResult,
 } from './types';
-import { getCampaigns, updateCampaign, getCampaignById } from '@/lib/firebase/campaigns';
-import type { Campaign } from '@/lib/offers/campaignTypes';
+import { getCampaigns, getCampaignById, incrementCampaignUsage } from '@/lib/firebase/campaigns';
+import type { OfferCampaign } from '@/types/campaign';
 import { sendRewardUnlockEmail } from '@/lib/loyalty/emailService';
 
 // ── Collection Names ─────────────────────────────────────────────
@@ -75,6 +75,7 @@ export async function upsertCustomerProfile(
       lastOrderAt: orderCreatedAt,
       updatedAt: new Date().toISOString(),
     });
+    // Return the PROFILE with manually incremented count (Firestore increment may be stale on read)
     return {
       ...existing,
       completedOrders: existing.completedOrders + 1,
@@ -130,14 +131,14 @@ export async function getRewardById(id: string): Promise<CustomerReward | null> 
   return { id: snap.id, ...snap.data() } as CustomerReward;
 }
 
-/** Get all active loyalty campaigns (with type=loyalty_reward) */
+/** Get all active loyalty campaigns (supports both 'loyalty' and 'loyalty_reward' types) */
 export async function getActiveLoyaltyCampaigns(): Promise<LoyaltyCampaignData[]> {
   const allCampaigns = await getCampaigns();
   const now = new Date().toISOString();
 
   return allCampaigns
     .filter(c => {
-      if (c.type !== 'loyalty_reward') return false;
+      if (c.type !== 'loyalty' && (c as any).type !== 'loyalty_reward') return false;
       if (!c.isActive) return false;
       if (c.startDate && c.startDate > now) return false;
       if (c.endDate && c.endDate < now) return false;
@@ -225,14 +226,9 @@ export async function unlockReward(
     updatedAt: now,
   });
 
-  // Increment campaign usage
+  // Increment campaign usage using the dedicated function (fire-and-forget)
   try {
-    const campaignDoc = await getCampaignById(campaign.id);
-    if (campaignDoc) {
-      await updateCampaign(campaign.id, {
-        currentUsage: (campaignDoc.currentUsage || 0) + 1,
-      } as any);
-    }
+    await incrementCampaignUsage(campaign.id);
   } catch (e) {
     console.warn('[Loyalty] Failed to increment campaign usage:', e);
   }
@@ -332,21 +328,21 @@ export async function applyReward(
 
 // ── Loyalty Campaign Data Conversion ──────────────────────────────
 
-/** Convert a Campaign to LoyaltyCampaignData */
-export function toLoyaltyCampaignData(campaign: Campaign): LoyaltyCampaignData {
+/** Convert an OfferCampaign to LoyaltyCampaignData */
+export function toLoyaltyCampaignData(campaign: OfferCampaign): LoyaltyCampaignData {
   return {
     id: campaign.id,
     campaignId: campaign.id,
-    name: campaign.name,
-    title: campaign.title || campaign.name,
+    name: campaign.title,
+    title: campaign.title,
     description: campaign.description,
-    minCompletedOrders: campaign.minCompletedOrders || 10,
+    minCompletedOrders: campaign.loyaltyMinOrders || 1,  // default 1 so first order can unlock
     discountType: campaign.discountType,
     discountValue: campaign.discountValue,
     couponCode: campaign.couponCode || generateCouponCode(),
-    rewardLabel: campaign.badgeText || 'Loyalty Reward',
-    usageLimit: campaign.usageLimit,
-    currentUsage: campaign.currentUsage || 0,
+    rewardLabel: campaign.rewardLabel || 'Loyalty Reward',
+    usageLimit: campaign.usageLimit ?? undefined,
+    currentUsage: campaign.usageCount || 0,
     expiresAfterDays: campaign.expiresAfterDays || 30,
     isActive: campaign.isActive,
     startDate: campaign.startDate,
@@ -363,18 +359,23 @@ function generateCouponCode(): string {
 
 // ── Process Loyalty After Delivery ────────────────────────────────
 
-/** Process loyalty rewards after a delivered order */
+/**
+ * Process loyalty rewards after a completed order.
+ * Called directly from checkout with the email+phone of the customer.
+ * Uses the profile from step 1 directly in step 2 to avoid Firestore read-after-write staleness.
+ */
 export async function processLoyaltyAfterDelivery(
   email: string,
   phone: string,
   orderTotal: number,
   orderCreatedAt: string
 ): Promise<{ profile: CustomerProfile; reward: CustomerReward | null }> {
-  // 1. Upsert customer profile
+  // 1. Upsert customer profile (creates or updates + increments completedOrders)
   const profile = await upsertCustomerProfile(email, phone, orderTotal, orderCreatedAt);
 
-  // 2. Check and unlock rewards
-  const reward = await checkAndUnlockRewards(email, phone);
+  // 2. Check and unlock rewards using the profile directly (not re-fetching from Firestore)
+  //    This ensures we use the freshly-computed completedOrders count
+  const reward = await checkAndUnlockRewardsWithProfile(email, phone, profile);
 
   // 3. Send reward email if unlocked
   if (reward && !reward.emailSent) {
@@ -390,4 +391,31 @@ export async function processLoyaltyAfterDelivery(
   }
 
   return { profile, reward };
+}
+
+/**
+ * Check eligibility using an already-fetched profile (avoids Firestore read-after-write staleness).
+ * The profile object MUST have the correct completedOrders count.
+ */
+async function checkAndUnlockRewardsWithProfile(
+  email: string,
+  phone: string,
+  profile: CustomerProfile
+): Promise<CustomerReward | null> {
+  const activeCampaigns = await getActiveLoyaltyCampaigns();
+  if (activeCampaigns.length === 0) return null;
+
+  const customerKey = makeCustomerKey(email, phone);
+
+  for (const campaign of activeCampaigns) {
+    if (profile.completedOrders >= campaign.minCompletedOrders) {
+      const alreadyUnlocked = await hasRewardForCampaign(customerKey, campaign.id);
+      if (alreadyUnlocked) continue;
+
+      if (campaign.usageLimit && campaign.currentUsage >= campaign.usageLimit) continue;
+
+      return await unlockReward(profile, campaign);
+    }
+  }
+  return null;
 }

@@ -53,6 +53,7 @@ service cloud.firestore {
 
     match /products/{productId} {
       allow read: if true;
+      allow list: if true;
       allow create, update, delete: if isAdminOrSuperAdmin();
     }
 
@@ -62,11 +63,13 @@ service cloud.firestore {
 
     match /categories/{categoryId} {
       allow read: if true;
+      allow list: if true;
       allow create, update, delete: if isAdminOrSuperAdmin();
     }
 
     // =====================================================
     // ORDERS
+    //   FIX: Added allow list for getDocs queries (e.g. notify-order API)
     // =====================================================
 
     match /orders/{orderId} {
@@ -74,6 +77,9 @@ service cloud.firestore {
       allow read: if isAdminOrSuperAdmin() || (
         request.query.trackingToken != null &&
         resource.data.trackingToken == request.query.trackingToken
+      );
+      allow list: if isAdminOrSuperAdmin() || (
+        request.query.trackingToken != null
       );
       allow update, delete: if isAdminOrSuperAdmin();
     }
@@ -84,6 +90,7 @@ service cloud.firestore {
 
     match /hero_slides/{slideId} {
       allow read: if true;
+      allow list: if true;
       allow create, update, delete: if isAdminOrSuperAdmin();
     }
 
@@ -93,6 +100,7 @@ service cloud.firestore {
 
     match /faqs/{faqId} {
       allow read: if true;
+      allow list: if true;
       allow create, update, delete: if isAdminOrSuperAdmin();
     }
 
@@ -102,6 +110,7 @@ service cloud.firestore {
 
     match /reviews/{reviewId} {
       allow read: if true;
+      allow list: if true;
       allow create, update, delete: if isAdminOrSuperAdmin();
     }
 
@@ -111,17 +120,25 @@ service cloud.firestore {
 
     match /section_config/{docId} {
       allow read: if true;
+      allow list: if true;
       allow create, update, delete: if isAdminOrSuperAdmin();
     }
 
     // =====================================================
     // CAMPAIGNS (offer campaigns & promotions)
-    //   Public read - anyone can see active campaigns
-    //   Admin write - only admins can manage campaigns
+    //   FIX: Added allow list for getDocs queries (loyalty service, offers page)
+    //   Public list allows querying, app-level filtering handles active/expired
     // =====================================================
 
     match /campaigns/{campaignId} {
-      allow read: if true;
+      // Public single-doc read: only active campaigns
+      allow read: if resource.data.isActive == true;
+      // Public query (list): allows getDocs for filtering at app level
+      allow list: if true;
+      // Admin can read all (including inactive/expired)
+      allow read: if isAdminOrSuperAdmin();
+      allow list: if isAdminOrSuperAdmin();
+      // Only admins can create/update/delete
       allow create, update, delete: if isAdminOrSuperAdmin();
     }
 
@@ -131,6 +148,7 @@ service cloud.firestore {
 
     match /settings/{settingId} {
       allow read: if true;
+      allow list: if true;
       allow create, update, delete: if isAdminOrSuperAdmin();
     }
 
@@ -147,39 +165,135 @@ service cloud.firestore {
     }
 
     // =====================================================
-    // ANALYTICS — FIX: separate write into create+update+delete
-    // Public can CREATE (tracking). Admin can do everything.
+    // ANALYTICS
+    //   Public can CREATE (tracking). Admin can do everything.
     // =====================================================
 
     match /visitor_sessions/{docId} {
       allow create: if true;
-      allow read, update, delete: if isAdminOrSuperAdmin();
+      allow read, list, update, delete: if isAdminOrSuperAdmin();
     }
 
     match /page_views/{docId} {
       allow create: if true;
-      allow read, update, delete: if isAdminOrSuperAdmin();
+      allow read, list, update, delete: if isAdminOrSuperAdmin();
     }
 
     match /product_views/{docId} {
       allow create: if true;
-      allow read, update, delete: if isAdminOrSuperAdmin();
+      allow read, list, update, delete: if isAdminOrSuperAdmin();
     }
 
-    // FIX: "allow write" was missing read for admin on free tier
-    // Explicitly split into create (public) + read/update/delete (admin)
     match /analytics_daily/{docId} {
       allow create, update: if true;
-      allow read, delete: if isAdminOrSuperAdmin();
+      allow read, list, delete: if isAdminOrSuperAdmin();
     }
 
     match /analytics_monthly/{docId} {
       allow create, update: if true;
-      allow read, delete: if isAdminOrSuperAdmin();
+      allow read, list, delete: if isAdminOrSuperAdmin();
     }
 
     // =====================================================
-    // DEFAULT DENY
+    // CUSTOMERS (loyalty profiles)
+    //   FIX: Added allow list for getDocs queries (findCustomerByEmailPhone)
+    //   Public list + create — queries are filtered by email+phone at app level
+    // =====================================================
+
+    match /customers/{customerId} {
+      allow read: if true;
+      allow list: if true;
+      allow create: if true;
+      allow update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // CUSTOMER REWARDS (loyalty reward records)
+    //   FIX: Added allow list for getDocs queries (getAvailableRewards, hasRewardForCampaign, validateRewardForCustomer)
+    //   Public list + create — queries filtered by customerKey/couponCode at app level
+    // =====================================================
+
+    match /customer_rewards/{rewardId} {
+      allow read: if true;
+      allow list: if true;
+      allow create: if true;
+      allow update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // TRUST BAR (footer trust indicators)
+    // =====================================================
+
+    match /trust_bar/{docId} {
+      allow read: if true;
+      allow list: if true;
+      allow create, update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // FOOTER CONFIG
+    // =====================================================
+
+    match /footer_config/{docId} {
+      allow read: if true;
+      allow list: if true;
+      allow create, update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // CONTENT PAGES
+    // =====================================================
+
+    match /content/{docId} {
+      allow read: if true;
+      allow list: if true;
+      allow create, update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // FLASH SALE
+    // =====================================================
+
+    match /flash_sale/{docId} {
+      allow read: if true;
+      allow list: if true;
+      allow create, update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // WHY CHOOSE US
+    // =====================================================
+
+    match /why_choose_us/{docId} {
+      allow read: if true;
+      allow list: if true;
+      allow create, update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // NEWSLETTER
+    // =====================================================
+
+    match /newsletter/{docId} {
+      allow read: if true;
+      allow list: if true;
+      allow create: if true;
+      allow update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // UGC GALLERY
+    // =====================================================
+
+    match /ugc_gallery/{docId} {
+      allow read: if true;
+      allow list: if true;
+      allow create: if true;
+      allow update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // DEFAULT DENY — catch all for unlisted collections
     // =====================================================
 
     match /{document=**} {

@@ -24,12 +24,12 @@ const TYPE_BG_CLASSES: Record<string, string> = {
 };
 
 const TYPE_BADGE_CLASSES: Record<string, string> = {
-  flash_sale: 'bg-red-500/20 text-red-300',
-  first_customer: 'bg-green-500/20 text-green-300',
-  combo: 'bg-blue-500/20 text-blue-300',
-  loyalty_reward: 'bg-purple-500/20 text-purple-300',
-  festival: 'bg-amber-500/20 text-amber-300',
-  custom: 'bg-cyan-500/20 text-cyan-300',
+  flash_sale: 'bg-red-500/20 text-red-700 dark:text-red-300',
+  first_customer: 'bg-green-500/20 text-green-700 dark:text-green-300',
+  combo: 'bg-blue-500/20 text-blue-700 dark:text-blue-300',
+  loyalty_reward: 'bg-purple-500/20 text-purple-700 dark:text-purple-300',
+  festival: 'bg-amber-500/20 text-amber-700 dark:text-amber-300',
+  custom: 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300',
 };
 
 export default function CampaignCard({ campaign, index = 0 }: { campaign: CampaignCardData; index?: number }) {
@@ -46,7 +46,7 @@ export default function CampaignCard({ campaign, index = 0 }: { campaign: Campai
       className={`relative overflow-hidden rounded-xl md:rounded-2xl bg-gradient-to-br ${bgClass} p-5 md:p-6 flex flex-col min-h-[200px] border ${campaign.themeColor ? `border-${campaign.themeColor}/20` : ''}`}
     >
       {/* Decorative bg element */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-white/5 to-transparent rounded-full blur-2xl -translate-y-1/2 translate-x-1/4" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-white/5 dark:from-white/5 from-black/[0.03] to-transparent rounded-full blur-2xl -translate-y-1/2 translate-x-1/4" />
 
       {/* Badge */}
       <div className="flex items-center justify-between mb-3">
@@ -55,25 +55,25 @@ export default function CampaignCard({ campaign, index = 0 }: { campaign: Campai
           <span className="capitalize">{campaign.type.replace(/_/g, ' ')}</span>
         </div>
         {campaign.badgeText && (
-          <span className="text-[10px] px-2 py-0.5 bg-red-500/20 text-red-300 rounded-full font-bold uppercase">
+          <span className="text-[10px] px-2 py-0.5 bg-red-500/20 text-red-700 dark:text-red-300 rounded-full font-bold uppercase">
             {campaign.badgeText}
           </span>
         )}
       </div>
 
       {/* Title & Description */}
-      <h3 className="text-lg md:text-xl font-bold mb-1 leading-tight">{campaign.title}</h3>
-      <p className="text-sm text-gray-400 dark:text-gray-400 mb-3 flex-1 line-clamp-2">{campaign.description || description}</p>
+      <h3 className="text-lg md:text-xl font-bold mb-1 leading-tight text-gray-900 dark:text-gray-100">{campaign.title}</h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 flex-1 line-clamp-2">{campaign.description || description}</p>
 
       {/* Discount Label */}
-      <div className="text-2xl md:text-3xl font-extrabold text-green-400 mb-3">
+      <div className="text-2xl md:text-3xl font-extrabold text-green-600 dark:text-green-400 mb-3">
         {label}
       </div>
 
       {/* Countdown */}
       {campaign.endDate && (
         <div className="mt-auto">
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-2">
             <Clock className="w-3.5 h-3.5" />
             <span>Ends in</span>
           </div>
