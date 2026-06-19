@@ -7,7 +7,7 @@ import { logoutAdmin } from '@/lib/firebase/auth';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Tag, Home, ChevronRight,
   Layers, ImageIcon, ShieldCheck, FileText, MessageSquare, HelpCircle, Star, ChevronDown,
-  Menu, X, BarChart3, Activity, Megaphone
+  Menu, X, BarChart3, Activity, Megaphone, Link as LinkIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -125,6 +125,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
         {[
           { href: '/admin/marketing/campaigns', icon: Megaphone, label: 'Offer Campaigns', show: true },
+          { href: '/admin/marketing/announcements', icon: Megaphone, label: 'Announcements', show: true },
         ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
           return (
@@ -143,6 +144,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         {[
           { href: '/admin/hero', icon: ImageIcon, label: 'Hero Slides', show: true },
           { href: '/admin/footer', icon: FileText, label: 'Footer', show: true },
+          { href: '/admin/saved-urls', icon: LinkIcon, label: 'Saved URLs', show: true },
         ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
           return (
@@ -289,8 +291,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           </div>
 
           {[
-            { href: '/admin/marketing/campaigns', icon: Megaphone, label: 'Offer Campaigns', show: true },
-          ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
+          { href: '/admin/marketing/campaigns', icon: Megaphone, label: 'Offer Campaigns', show: true },
+          { href: '/admin/marketing/announcements', icon: Megaphone, label: 'Announcements', show: true },
+        ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (
               <Link key={href} href={href}
@@ -308,6 +311,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           {[
             { href: '/admin/hero', icon: ImageIcon, label: 'Hero Slides', show: true },
             { href: '/admin/footer', icon: FileText, label: 'Footer', show: true },
+            { href: '/admin/saved-urls', icon: LinkIcon, label: 'Saved URLs', show: true },
           ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (

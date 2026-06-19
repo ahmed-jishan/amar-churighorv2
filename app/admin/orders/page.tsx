@@ -40,6 +40,8 @@ export default function AdminOrdersPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | OrderStatus>('all');
   const [selected, setSelected] = useState<Order | null>(null);
   const [statusNote, setStatusNote] = useState('');
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 20;
 
   useEffect(() => {
     getAllOrders().then(o => { setOrders(o); setLoading(false); });
@@ -53,6 +55,12 @@ export default function AdminOrdersPage() {
     const matchStatus = filterStatus === 'all' || o.status === filterStatus;
     return matchSearch && matchStatus;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+  const startItem = filtered.length === 0 ? 0 : (safePage - 1) * PER_PAGE + 1;
+  const endItem = Math.min(safePage * PER_PAGE, filtered.length);
 
   const handleStatusUpdate = async (order: Order, status: OrderStatus) => {
     await updateOrderStatus(order.id, status, statusNote || undefined);
@@ -82,10 +90,10 @@ export default function AdminOrdersPage() {
         <span className="ml-auto text-sm text-gray-500 self-center">{filtered.length} orders</span>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-6" style={{ height: 'calc(100vh - 220px)' }}>
         {/* Orders List */}
-        <div className="lg:col-span-2 bg-[#0b2a2b] rounded-2xl border border-[#1f3334] overflow-hidden">
-          <div className="overflow-x-auto scrollbar-admin">
+        <div className="lg:col-span-2 bg-[#0b2a2b] rounded-2xl border border-[#1f3334] flex flex-col overflow-hidden">
+          <div className="overflow-y-auto overflow-x-auto scrollbar-admin flex-1" style={{ maxHeight: 'none' }}>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#1f3334] text-gray-500 text-xs uppercase">
@@ -100,7 +108,7 @@ export default function AdminOrdersPage() {
               <tbody>
                 {loading ? Array(5).fill(0).map((_, i) => (
                   <tr key={i}><td colSpan={6} className="p-4"><div className="h-4 animate-pulse bg-[#1f3334] rounded" /></td></tr>
-                )) : filtered.map(order => (
+                )) : paginated.map(order => (
                   <tr key={order.id} onClick={() => setSelected(order)}
                     className={`border-b border-[#1f3334]/50 cursor-pointer transition ${selected?.id === order.id ? 'bg-[#051a1b]' : 'hover:bg-[#051a1b]'}`}>
                     <td className="p-4 font-mono text-[#d7ffa4] text-xs">{order.orderId}</td>
@@ -115,10 +123,50 @@ export default function AdminOrdersPage() {
             </table>
             {!loading && filtered.length === 0 && <div className="text-center py-12 text-gray-500">No orders found</div>}
           </div>
+
+          {/* Pagination */}
+          {!loading && filtered.length > PER_PAGE && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-[#1f3334] text-xs" style={{ color: '#9aada8' }}>
+              <span>
+                Showing {startItem}–{endItem} of {filtered.length} Orders
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                  className="px-3 py-1.5 rounded-lg border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0b2a2b] transition"
+                  style={{ borderColor: 'rgba(201,169,110,0.18)' }}
+                >
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className="w-7 h-7 rounded-lg text-xs font-medium transition"
+                    style={{
+                      backgroundColor: p === safePage ? '#c9a96e' : 'transparent',
+                      color: p === safePage ? '#050d0e' : '#9aada8',
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  className="px-3 py-1.5 rounded-lg border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0b2a2b] transition"
+                  style={{ borderColor: 'rgba(201,169,110,0.18)' }}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Order Detail */}
-        <div className="bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-5">
+        <div className="bg-[#0b2a2b] rounded-2xl border border-[#1f3334] overflow-y-auto scrollbar-admin" style={{ padding: '1.25rem', maxHeight: '100%' }}>
           {!selected ? (
             <div className="text-center py-16 text-gray-500 text-sm">Click an order to view details</div>
           ) : (

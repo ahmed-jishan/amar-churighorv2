@@ -384,7 +384,7 @@ export default function AdminCampaignsPage() {
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-medium truncate" style={{ color: '#f0ebe0' }}>{campaign.title}</p>
+                          <p className="font-medium break-words leading-snug" style={{ color: '#f0ebe0', wordBreak: 'break-word' }}>{campaign.title}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span style={{ color: TYPE_COLORS[campaign.type], backgroundColor: `${TYPE_COLORS[campaign.type]}20` }}
                               className="text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize">

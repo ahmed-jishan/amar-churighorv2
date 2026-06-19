@@ -125,19 +125,28 @@ service cloud.firestore {
     }
 
     // =====================================================
+    // ANNOUNCEMENT SETTINGS
+    //   Single doc "config" — public read + list, admin write
+    //   Both read and list needed for onSnapshot + getDoc to work
+    // =====================================================
+
+    match /announcement_settings/{docId} {
+      allow read: if true;
+      allow list: if true;
+      allow create, update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
     // CAMPAIGNS (offer campaigns & promotions)
     //   FIX: Added allow list for getDocs queries (loyalty service, offers page)
     //   Public list allows querying, app-level filtering handles active/expired
     // =====================================================
 
     match /campaigns/{campaignId} {
-      // Public single-doc read: only active campaigns
-      allow read: if resource.data.isActive == true;
-      // Public query (list): allows getDocs for filtering at app level
+      // Public read + list — app-level filtering handles active/expired visibility
+      // Using simple rules avoids composite index requirements
+      allow read: if true;
       allow list: if true;
-      // Admin can read all (including inactive/expired)
-      allow read: if isAdminOrSuperAdmin();
-      allow list: if isAdminOrSuperAdmin();
       // Only admins can create/update/delete
       allow create, update, delete: if isAdminOrSuperAdmin();
     }
@@ -279,6 +288,15 @@ service cloud.firestore {
       allow list: if true;
       allow create: if true;
       allow update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // SAVED URLS (admin-only management)
+    // =====================================================
+
+    match /savedUrls/{urlId} {
+      allow read, list: if isAdminOrSuperAdmin();
+      allow create, update, delete: if isAdminOrSuperAdmin();
     }
 
     // =====================================================

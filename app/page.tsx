@@ -21,6 +21,8 @@ import { motion } from 'framer-motion';
 import ReviewsSection from '@/components/ui/ReviewsSection';
 import FAQSection from '@/components/ui/FAQSection';
 import { getSectionConfig, SectionConfig } from '@/lib/firebase/sectionConfig';
+import CampaignRibbon from '@/components/sections/CampaignRibbon';
+import ActiveOffersSection from '@/components/sections/ActiveOffersSection';
 
 // ── Featured Collection Section (dynamic config) ──
 function FeaturedCollectionSection() {
@@ -226,6 +228,9 @@ export default function HomePage() {
     <div className="space-y-12 md:space-y-20">
       <HeroCarousel />
 
+      {/* Campaign Ribbon — hidden when empty */}
+      <CampaignRibbon />
+
       {/* Featured Collection */}
       <FeaturedCollectionSection />
 
@@ -234,6 +239,9 @@ export default function HomePage() {
 
       {/* Best Sellers / Customer Favorites */}
       <BestSellersSection />
+
+      {/* Active Offers Section — hidden when empty */}
+      <ActiveOffersSection />
 
       {/* New Arrivals */}
       <NewArrivalsSection />

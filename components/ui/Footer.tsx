@@ -288,8 +288,8 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Sections Grid — fully separate, never overlaps brand */}
-          <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 min-w-0">
+          {/* Sections Grid — 4 columns on desktop, fully responsive */}
+          <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 md:gap-8 min-w-0">
             {displaySections.map(section => (
               <div key={section.id}>
                 <h4 className="font-semibold text-xs md:text-sm text-gray-900 dark:text-white mb-3 uppercase tracking-wide">
