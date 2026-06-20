@@ -41,8 +41,12 @@ export interface CustomerReward {
   unlockedAt: string;
   /** When this reward expires */
   expiresAt: string;
-  /** Whether the reward has been used */
+  /** Whether the reward has been used (deprecated — use usageCount/usageLimit) */
   isUsed: boolean;
+  /** How many times this reward has been applied (counts toward perUserUsageLimit) */
+  usageCount: number;
+  /** Max times this customer can use this reward (from campaign perUserUsageLimit, defaults to 1) */
+  usageLimit: number;
   /** If used, the order ID where it was applied */
   usedOnOrderId?: string;
   /** If used, timestamp of usage */
@@ -91,6 +95,8 @@ export interface LoyaltyCampaignData {
   startDate: string;
   endDate?: string;
   campaignId?: string;
+  /** Max times each customer can apply this coupon (null/undefined = 1) */
+  perUserUsageLimit?: number;
 }
 
 /** Response for reward validation before applying */

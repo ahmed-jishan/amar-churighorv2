@@ -54,6 +54,8 @@ export interface OfferCampaign {
   expiresAfterDays?: number;
   /** For loyalty: display label for the reward */
   rewardLabel?: string;
+  /** For loyalty: max times each customer can apply this coupon (null = unlimited once) */
+  perUserUsageLimit?: number;
   /** For first_order: only applicable to first-time customers */
   firstOrderOnly: boolean;
   // ── Metadata ──
@@ -92,6 +94,8 @@ export interface CampaignFormData {
   expiresAfterDays?: number;
   /** For loyalty: display label */
   rewardLabel?: string;
+  /** For loyalty: max times each customer can apply this coupon */
+  perUserUsageLimit?: number;
   firstOrderOnly: boolean;
 }
 
@@ -120,6 +124,7 @@ export interface CampaignCardData {
   couponCode?: string;
   expiresAfterDays?: number;
   rewardLabel?: string;
+  perUserUsageLimit?: number;
   targetCategories: string[];
   minOrderAmount: number | null;
 }

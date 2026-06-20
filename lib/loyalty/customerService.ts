@@ -104,7 +104,12 @@ export async function upsertCustomerProfile(
   }
 }
 
-/** Get unused (available) rewards for a customer */
+/** Get unused (available) rewards for a customer.
+ *  A reward is "available" if usageCount < usageLimit AND not expired.
+ *  This means if a customer skips applying on one order, the reward
+ *  still shows on the next order — they don't lose their chance.
+ *  If the associated campaign has been deactivated by admin, the reward
+ *  is NOT shown — user cannot use deactivated campaign rewards. */
 export async function getAvailableRewards(
   email: string,
   phone: string
@@ -112,10 +117,26 @@ export async function getAvailableRewards(
   const profile = await findCustomerByEmailPhone(email, phone);
   if (!profile || profile.unlockedRewards.length === 0) return [];
 
+  // Fetch active campaigns once for campaign-checking efficiency
+  const activeCampaigns = await getActiveLoyaltyCampaigns();
+  const activeCampaignIds = new Set(activeCampaigns.map(c => c.campaignId || c.id));
+
   const allRewards: CustomerReward[] = [];
   for (const rewardId of profile.unlockedRewards) {
     const reward = await getRewardById(rewardId);
-    if (reward && !reward.isUsed && new Date(reward.expiresAt) > new Date()) {
+    if (!reward) continue;
+
+    // Reward is available if:
+    // 1. Associated campaign is still active (admin hasn't deactivated it)
+    // 2. Not expired AND
+    // 3. usageCount < usageLimit (has remaining uses)
+    const campaignActive = activeCampaignIds.has(reward.campaignId);
+    if (!campaignActive) continue;
+
+    const notExpired = new Date(reward.expiresAt) > new Date();
+    const hasRemainingUses = reward.usageCount < reward.usageLimit;
+
+    if (notExpired && hasRemainingUses) {
       allRewards.push(reward);
     }
   }
@@ -128,7 +149,14 @@ export async function getAvailableRewards(
 export async function getRewardById(id: string): Promise<CustomerReward | null> {
   const snap = await getDoc(doc(db, REWARDS_COLLECTION, id));
   if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() } as CustomerReward;
+  const data = snap.data();
+  return {
+    id: snap.id,
+    ...data,
+    // Ensure backward compatibility for old rewards without usageCount/usageLimit
+    usageCount: data.usageCount ?? (data.isUsed ? 1 : 0),
+    usageLimit: data.usageLimit ?? 1,
+  } as CustomerReward;
 }
 
 /** Get all active loyalty campaigns (supports both 'loyalty' and 'loyalty_reward' types) */
@@ -147,22 +175,62 @@ export async function getActiveLoyaltyCampaigns(): Promise<LoyaltyCampaignData[]
     .map(c => toLoyaltyCampaignData(c));
 }
 
-/** Check if customer already has a reward for a specific campaign */
-async function hasRewardForCampaign(
+/**
+ * Check if customer already has a reward for a specific campaign that still has
+ * remaining uses (usageCount < usageLimit). If an existing reward still has uses,
+ * return it — we won't create a new one.
+ *
+ * Only when the existing reward is exhausted (usageCount >= usageLimit) will we
+ * allow creating a new reward record.
+ */
+async function getUsableRewardForCampaign(
   customerKey: string,
-  campaignId: string
-): Promise<boolean> {
+  campaignId: string,
+  campaignUsageLimit: number
+): Promise<CustomerReward | null> {
   const q = query(
     collection(db, REWARDS_COLLECTION),
     where('customerKey', '==', customerKey),
+    where('campaignId', '==', campaignId),
     limit(20)
   );
   const snap = await getDocs(q);
+
+  let usableReward: CustomerReward | null = null;
+
   for (const d of snap.docs) {
     const data = d.data();
-    if (data.campaignId === campaignId) return true;
+    const rewardUsageCount = data.usageCount ?? (data.isUsed ? 1 : 0);
+    const rewardUsageLimit = data.usageLimit ?? 1;
+
+    // If this reward still has remaining uses, it's usable
+    if (rewardUsageCount < rewardUsageLimit) {
+      usableReward = {
+        id: d.id,
+        ...data,
+        usageCount: rewardUsageCount,
+        usageLimit: rewardUsageLimit,
+      } as CustomerReward;
+    }
+    // If we find a usable reward, return it immediately
+    if (usableReward) return usableReward;
   }
-  return false;
+
+  // If no reward found, check if the campaign usageLimit per-user is exhausted
+  // by counting ALL rewards for this user+campaign and their total usage
+  let totalUsage = 0;
+  for (const d of snap.docs) {
+    const data = d.data();
+    totalUsage += data.usageCount ?? (data.isUsed ? 1 : 0);
+  }
+
+  // If total usage across all rewards >= perUserUsageLimit, user has exhausted their limit
+  if (totalUsage >= campaignUsageLimit) {
+    return null; // Will be interpreted as "exhausted" by caller
+  }
+
+  // No reward exists at all for this user+campaign — return a sentinel to indicate "needs creation"
+  return null;
 }
 
 /** Check if a customer is eligible for any rewards and unlock them */
@@ -180,15 +248,61 @@ export async function checkAndUnlockRewards(
 
   for (const campaign of activeCampaigns) {
     if (profile.completedOrders >= campaign.minCompletedOrders) {
-      const alreadyUnlocked = await hasRewardForCampaign(customerKey, campaign.id);
-      if (alreadyUnlocked) continue;
+      const perUserLimit = campaign.perUserUsageLimit ?? 1;
 
+      // Check if user has a usable reward already, or if they've exhausted their limit
+      const usableReward = await getUsableRewardForCampaign(customerKey, campaign.id, perUserLimit);
+
+      if (usableReward) {
+        // User already has a reward with remaining uses — no need to create new
+        continue;
+      }
+
+      // Check if user has exhausted per-user limit (getUsableRewardForCampaign returned null
+      // because total usage >= limit). In that case, skip this campaign entirely.
+      const allRewards = await getAllRewardsForCampaign(customerKey, campaign.id);
+      let totalUsage = 0;
+      for (const r of allRewards) {
+        totalUsage += r.usageCount;
+      }
+      if (totalUsage >= perUserLimit) {
+        // User has exhausted their per-user usage limit — skip
+        continue;
+      }
+
+      // Check campaign global usage limit
       if (campaign.usageLimit && campaign.currentUsage >= campaign.usageLimit) continue;
 
+      // Create new reward
       return await unlockReward(profile, campaign);
     }
   }
   return null;
+}
+
+/** Get ALL rewards for a user+campaign (used for counting total usage) */
+async function getAllRewardsForCampaign(
+  customerKey: string,
+  campaignId: string
+): Promise<CustomerReward[]> {
+  const q = query(
+    collection(db, REWARDS_COLLECTION),
+    where('customerKey', '==', customerKey),
+    where('campaignId', '==', campaignId),
+    limit(20)
+  );
+  const snap = await getDocs(q);
+  const results: CustomerReward[] = [];
+  for (const d of snap.docs) {
+    const data = d.data();
+    results.push({
+      id: d.id,
+      ...data,
+      usageCount: data.usageCount ?? (data.isUsed ? 1 : 0),
+      usageLimit: data.usageLimit ?? 1,
+    } as CustomerReward);
+  }
+  return results;
 }
 
 /** Create a new reward record for a customer */
@@ -199,6 +313,7 @@ export async function unlockReward(
   const now = new Date().toISOString();
   const expiresAt = new Date(Date.now() + campaign.expiresAfterDays * 24 * 60 * 60 * 1000).toISOString();
   const customerKey = makeCustomerKey(profile.email, profile.phone);
+  const perUserLimit = campaign.perUserUsageLimit ?? 1;
 
   const rewardData = clean({
     customerKey,
@@ -212,6 +327,8 @@ export async function unlockReward(
     unlockedAt: now,
     expiresAt,
     isUsed: false,
+    usageCount: 0,
+    usageLimit: perUserLimit,
     emailSent: false,
     displayedOnSuccess: false,
     createdAt: now,
@@ -233,7 +350,7 @@ export async function unlockReward(
     console.warn('[Loyalty] Failed to increment campaign usage:', e);
   }
 
-  return { id: ref.id, ...rewardData } as CustomerReward;
+  return { id: ref.id, ...rewardData, usageCount: 0, usageLimit: perUserLimit } as CustomerReward;
 }
 
 /** Validate a reward before applying (coupon validation) */
@@ -255,14 +372,21 @@ export async function validateRewardForCustomer(
     return { valid: false, reward: null, campaign: null, error: 'No reward found for this coupon code' };
   }
 
-  const reward: CustomerReward = { id: snap.docs[0].id, ...snap.docs[0].data() } as CustomerReward;
+  const data = snap.docs[0].data();
+  const reward: CustomerReward = {
+    id: snap.docs[0].id,
+    ...data,
+    usageCount: data.usageCount ?? (data.isUsed ? 1 : 0),
+    usageLimit: data.usageLimit ?? 1,
+  } as CustomerReward;
 
   if (new Date(reward.expiresAt) < new Date()) {
     return { valid: false, reward, campaign: null, error: 'Reward has expired' };
   }
 
-  if (reward.isUsed) {
-    return { valid: false, reward, campaign: null, error: 'Reward has already been used' };
+  // Check if reward has remaining uses (instead of just !isUsed)
+  if (reward.usageCount >= reward.usageLimit) {
+    return { valid: false, reward, campaign: null, error: 'Reward has been fully used up' };
   }
 
   const activeCampaigns = await getActiveLoyaltyCampaigns();
@@ -276,7 +400,7 @@ export async function validateRewardForCustomer(
   return { valid: true, reward, campaign };
 }
 
-/** Apply a reward coupon — mark as used */
+/** Apply a reward coupon — mark as used (increment usage count) */
 export async function applyReward(
   rewardId: string,
   orderId: string,
@@ -287,8 +411,9 @@ export async function applyReward(
     return { success: false, discountAmount: 0, discountLabel: '', error: 'Reward not found' };
   }
 
-  if (reward.isUsed) {
-    return { success: false, discountAmount: 0, discountLabel: '', error: 'Reward already used' };
+  // Check if reward still has remaining uses
+  if (reward.usageCount >= reward.usageLimit) {
+    return { success: false, discountAmount: 0, discountLabel: '', error: 'Reward has been fully used' };
   }
 
   let discountAmount = 0;
@@ -302,13 +427,23 @@ export async function applyReward(
   }
 
   const now = new Date().toISOString();
+  const newUsageCount = reward.usageCount + 1;
+  const isNowExhausted = newUsageCount >= reward.usageLimit;
 
-  await updateDoc(doc(db, REWARDS_COLLECTION, rewardId), {
-    isUsed: true,
+  // Update: increment usageCount, optionally set isUsed if exhausted
+  const updateData: Record<string, any> = {
+    usageCount: increment(1),
     usedOnOrderId: orderId,
     usedAt: now,
     updatedAt: now,
-  });
+  };
+
+  // If this use exhausts the reward, mark isUsed for backward compatibility
+  if (isNowExhausted) {
+    updateData.isUsed = true;
+  }
+
+  await updateDoc(doc(db, REWARDS_COLLECTION, rewardId), updateData);
 
   const profile = await findCustomerByEmailPhone(reward.email, reward.phone);
   if (profile) {
@@ -322,7 +457,13 @@ export async function applyReward(
     success: true,
     discountAmount,
     discountLabel,
-    reward: { ...reward, isUsed: true, usedOnOrderId: orderId, usedAt: now },
+    reward: {
+      ...reward,
+      usageCount: newUsageCount,
+      isUsed: isNowExhausted,
+      usedOnOrderId: orderId,
+      usedAt: now,
+    },
   };
 }
 
@@ -347,6 +488,7 @@ export function toLoyaltyCampaignData(campaign: OfferCampaign): LoyaltyCampaignD
     isActive: campaign.isActive,
     startDate: campaign.startDate,
     endDate: campaign.endDate,
+    perUserUsageLimit: campaign.perUserUsageLimit ?? undefined,
   };
 }
 
@@ -409,11 +551,30 @@ async function checkAndUnlockRewardsWithProfile(
 
   for (const campaign of activeCampaigns) {
     if (profile.completedOrders >= campaign.minCompletedOrders) {
-      const alreadyUnlocked = await hasRewardForCampaign(customerKey, campaign.id);
-      if (alreadyUnlocked) continue;
+      const perUserLimit = campaign.perUserUsageLimit ?? 1;
 
+      // Check if user has a usable reward already, or if they've exhausted their limit
+      const usableReward = await getUsableRewardForCampaign(customerKey, campaign.id, perUserLimit);
+
+      if (usableReward) {
+        // Already has a reward with remaining uses
+        continue;
+      }
+
+      // Check if user has exhausted per-user limit
+      const allRewards = await getAllRewardsForCampaign(customerKey, campaign.id);
+      let totalUsage = 0;
+      for (const r of allRewards) {
+        totalUsage += r.usageCount;
+      }
+      if (totalUsage >= perUserLimit) {
+        continue;
+      }
+
+      // Check campaign global usage limit
       if (campaign.usageLimit && campaign.currentUsage >= campaign.usageLimit) continue;
 
+      // Create new reward
       return await unlockReward(profile, campaign);
     }
   }

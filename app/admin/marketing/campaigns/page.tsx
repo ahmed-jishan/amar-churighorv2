@@ -188,6 +188,7 @@ export default function AdminCampaignsPage() {
       couponCode: campaign.couponCode,
       expiresAfterDays: campaign.expiresAfterDays,
       rewardLabel: campaign.rewardLabel,
+      perUserUsageLimit: campaign.perUserUsageLimit,
       firstOrderOnly: campaign.firstOrderOnly,
     });
     setFormErrors({});
@@ -767,6 +768,14 @@ export default function AdminCampaignsPage() {
                           className="w-full p-3 border rounded-xl outline-none focus:border-[#c9a96e] text-sm" />
                         <p className="text-[10px] mt-1" style={{ color: '#5a7070' }}>Display label shown to customer (e.g. "VIP Customer Reward")</p>
                       </div>
+                      <div>
+                        <label className="block text-xs mb-1" style={{ color: '#9aada8' }}>Per-User Usage Limit</label>
+                        <input type="number" min={1} value={form.perUserUsageLimit || ''} onChange={e => setForm(f => ({ ...f, perUserUsageLimit: e.target.value ? Number(e.target.value) : undefined }))}
+                          placeholder="e.g. 2"
+                          style={{ backgroundColor: '#0f2223', borderColor: 'rgba(201,169,110,0.18)', color: '#f0ebe0' }}
+                          className="w-full p-3 border rounded-xl outline-none focus:border-[#c9a96e] text-sm" />
+                        <p className="text-[10px] mt-1" style={{ color: '#5a7070' }}>How many times each customer can use this coupon (1 = once). Leave blank for single use.</p>
+                      </div>
                     </div>
                     {/* Summary */}
                     {form.couponCode && form.discountValue && (
@@ -774,7 +783,8 @@ export default function AdminCampaignsPage() {
                         <Award className="w-3 h-3 inline mr-1.5" />
                         Customers get <strong>{form.discountValue}{form.discountType === 'percentage' ? '%' : '৳'} OFF</strong> with code <strong className="font-mono">{form.couponCode}</strong>
                         {form.loyaltyMinOrders ? ` after ${form.loyaltyMinOrders} completed orders` : ''}
-                        {form.expiresAfterDays ? ` (valid ${form.expiresAfterDays} days)` : ''}
+                        {form.perUserUsageLimit ? ` (up to ${form.perUserUsageLimit} uses per customer)` : ''}
+                        {form.expiresAfterDays ? `, valid ${form.expiresAfterDays} days` : ''}
                       </div>
                     )}
                   </div>

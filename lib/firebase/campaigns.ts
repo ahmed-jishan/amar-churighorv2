@@ -75,6 +75,7 @@ export async function createCampaign(data: CampaignFormData, adminUid: string): 
     couponCode: data.couponCode || undefined,
     expiresAfterDays: data.expiresAfterDays ? Number(data.expiresAfterDays) : undefined,
     rewardLabel: data.rewardLabel || undefined,
+    perUserUsageLimit: data.perUserUsageLimit ? Number(data.perUserUsageLimit) : undefined,
     firstOrderOnly: data.firstOrderOnly || false,
     createdBy: adminUid,
     createdAt: new Date().toISOString(),
@@ -107,6 +108,7 @@ export async function updateCampaign(id: string, data: Partial<CampaignFormData>
   if (data.couponCode !== undefined) payload.couponCode = data.couponCode || null;
   if (data.expiresAfterDays !== undefined) payload.expiresAfterDays = data.expiresAfterDays ? Number(data.expiresAfterDays) : null;
   if (data.rewardLabel !== undefined) payload.rewardLabel = data.rewardLabel || null;
+  if (data.perUserUsageLimit !== undefined) payload.perUserUsageLimit = data.perUserUsageLimit ? Number(data.perUserUsageLimit) : null;
 
   await updateDoc(doc(db, COLLECTION, id), cleanPayload(payload));
 }
