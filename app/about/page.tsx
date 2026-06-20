@@ -173,10 +173,10 @@ export default function AboutPage() {
             <p className="text-sm" style={{ color: '#9aada8' }}>Passionate people behind Lumin.</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <TeamMember name="Ahmed Jishan" role="Founder & CEO" initials="AJ" />
-            <TeamMember name="Fatima Begum" role="Head of Design" initials="FB" />
+            <TeamMember name="Professor J" role="Founder & CEO" initials="AJ" />
+            {/* <TeamMember name="Fatima Begum" role="Head of Design" initials="FB" />
             <TeamMember name="Rafiq Hasan" role="Operations Lead" initials="RH" />
-            <TeamMember name="Nusrat Jahan" role="Customer Care" initials="NJ" />
+            <TeamMember name="Nusrat Jahan" role="Customer Care" initials="NJ" /> */}
           </div>
         </div>
       </section>
