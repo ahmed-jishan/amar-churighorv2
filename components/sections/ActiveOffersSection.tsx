@@ -140,19 +140,28 @@ function CampaignCard({ campaign }: { campaign: OfferCampaign }) {
       <Link href={`/offers#${campaign.id}`} className="block">
         {/* Image or gradient block */}
         {hasImage ? (
-          <div className="relative h-[160px] overflow-hidden">
+          <div className="relative h-[160px] overflow-hidden"
+            style={{ backgroundColor: `${TYPE_COLORS[type] || '#c9a96e'}15` }}>
             <Image
               src={campaign.image!}
               alt={campaign.title}
               fill
-              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              className="object-contain"
               sizes="(max-width: 768px) 100vw, 33vw"
             />
-            {/* Overlay gradient */}
+            {/* Overlay gradient for text readability */}
             <div
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(to top, var(--card-bg, #0a1a1b) 0%, transparent 60%)',
+                background: `linear-gradient(to top, ${TYPE_COLORS[type] || '#c9a96e'}dd 0%, ${TYPE_COLORS[type] || '#c9a96e'}99 30%, transparent 60%, ${TYPE_COLORS[type] || '#c9a96e'}22 100%)`,
+                mixBlendMode: 'multiply',
+              }}
+            />
+            {/* Dark bottom gradient overlay */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(0deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 40%, transparent 70%)',
               }}
             />
             {/* Badges on overlay */}

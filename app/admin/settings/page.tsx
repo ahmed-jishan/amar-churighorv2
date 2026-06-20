@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAdmin } from '@/context/AdminContext';
 import { getAllAdmins } from '@/lib/firebase/admins';
 import { createAdminViaFunction, deleteAdminViaFunction, updateAdminViaFunction } from '@/services/adminService';
-import { getStoreConfig, saveStoreConfig, StoreConfig } from '@/lib/firebase/settings';
+import { getStoreConfig, saveStoreConfig, StoreConfig, getEmailConfig, saveEmailConfig, EmailConfig } from '@/lib/firebase/settings';
 import { Admin } from '@/types';
 import { Plus, UserX, UserCheck, Trash2, X, Search, ShieldCheck, Save, Mail, Phone, Truck, Pencil } from 'lucide-react';
 import NeoButton from '@/components/ui/NeoButton';
@@ -13,7 +13,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function AdminSettingsPage() {
   const { admin: currentAdmin, isSuperAdmin } = useAdmin();
-  const [activeTab, setActiveTab] = useState<'admins' | 'store'>('admins');
+  const [activeTab, setActiveTab] = useState<'admins' | 'store' | 'email'>('admins');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -37,15 +37,20 @@ export default function AdminSettingsPage() {
   // ---- Store Config ----
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
 
+  // ---- Email Config ----
+  const [emailConfig, setEmailConfig] = useState<EmailConfig | null>(null);
+
   // Load data
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [a, c] = await Promise.all([
+    const [a, c, e] = await Promise.all([
       getAllAdmins(),
       getStoreConfig(),
+      getEmailConfig(),
     ]);
     setAdmins(a);
     setStoreConfig(c);
+    setEmailConfig(e);
     setLoading(false);
   }, []);
 
@@ -180,6 +185,17 @@ export default function AdminSettingsPage() {
     setSaving(false);
   }
 
+  // ---- Email Config ----
+  async function handleSaveEmail() {
+    if (!emailConfig) return;
+    setSaving(true);
+    try {
+      await saveEmailConfig(emailConfig);
+      toast.success('Email settings saved!');
+    } catch { toast.error('Error saving email settings'); }
+    setSaving(false);
+  }
+
   // Loading state
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -200,6 +216,10 @@ export default function AdminSettingsPage() {
         <button onClick={() => setActiveTab('store')}
           className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition ${activeTab === 'store' ? 'bg-[#d7ffa4] text-[#1a1a1a]' : 'bg-[#0b2a2b] text-gray-400 hover:text-white border border-[#1f3334]'}`}>
           <Truck className="w-4 h-4" /> Store Settings
+        </button>
+        <button onClick={() => setActiveTab('email')}
+          className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition ${activeTab === 'email' ? 'bg-[#d7ffa4] text-[#1a1a1a]' : 'bg-[#0b2a2b] text-gray-400 hover:text-white border border-[#1f3334]'}`}>
+          <Mail className="w-4 h-4" /> Email Settings
         </button>
       </div>
 
@@ -312,6 +332,64 @@ export default function AdminSettingsPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ================================ */}
+      {/* EMAIL SETTINGS TAB */}
+      {/* ================================ */}
+      {activeTab === 'email' && emailConfig && (
+        <div className="bg-[#0b2a2b] rounded-2xl border border-[#1f3334] p-6">
+          <h2 className="font-bold text-white mb-5 flex items-center gap-2"><Mail className="w-5 h-5 text-[#d7ffa4]" /> Email Notification Settings</h2>
+          <div className="space-y-6">
+            {/* User Email Toggle */}
+            <div className="flex items-center justify-between p-4 bg-[#051a1b] rounded-xl border border-[#1f3334]">
+              <div>
+                <label className="block text-sm font-medium text-white">Customer Order Confirmation</label>
+                <p className="text-xs text-gray-400 mt-1">Send order confirmation email to the customer after placing an order.</p>
+              </div>
+              <button
+                onClick={() => setEmailConfig({ ...emailConfig, userGetEmail: !emailConfig.userGetEmail })}
+                className={`relative w-14 h-7 rounded-full transition-colors duration-200 ${
+                  emailConfig.userGetEmail ? 'bg-[#d7ffa4]' : 'bg-[#1f3334]'
+                }`}
+              >
+                <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform duration-200 shadow-md ${
+                  emailConfig.userGetEmail ? 'translate-x-7' : 'translate-x-0'
+                }`} />
+              </button>
+            </div>
+
+            {/* Admin Email Toggle */}
+            <div className="flex items-center justify-between p-4 bg-[#051a1b] rounded-xl border border-[#1f3334]">
+              <div>
+                <label className="block text-sm font-medium text-white">Admin Order Notification</label>
+                <p className="text-xs text-gray-400 mt-1">Send new order notification email to the admin when a customer places an order.</p>
+              </div>
+              <button
+                onClick={() => setEmailConfig({ ...emailConfig, adminGetEmail: !emailConfig.adminGetEmail })}
+                className={`relative w-14 h-7 rounded-full transition-colors duration-200 ${
+                  emailConfig.adminGetEmail ? 'bg-[#d7ffa4]' : 'bg-[#1f3334]'
+                }`}
+              >
+                <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform duration-200 shadow-md ${
+                  emailConfig.adminGetEmail ? 'translate-x-7' : 'translate-x-0'
+                }`} />
+              </button>
+            </div>
+
+            {/* Info */}
+            <div className="p-3 bg-[#d7ffa4]/10 border border-[#d7ffa4]/20 rounded-xl">
+              <p className="text-sm text-gray-300">
+                <span className="text-[#d7ffa4] font-medium">Note:</span> When customer email is disabled, a professional message will be shown on the order success page asking the user to save their Tracking ID for order tracking.
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <NeoButton text={saving ? 'Saving...' : 'Save Email Settings'} icon={<Save className="w-4 h-4" />} onClick={handleSaveEmail} disabled={saving}
+                className="bg-[#d7ffa4] text-[#1a1a1a] border-[#1a1a1a] shadow-[3px_3px_0px_#1a1a1a]" />
+            </div>
+          </div>
         </div>
       )}
 

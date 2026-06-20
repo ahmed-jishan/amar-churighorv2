@@ -280,12 +280,25 @@ service cloud.firestore {
     }
 
     // =====================================================
-    // NEWSLETTER
+    // NEWSLETTER (legacy collection)
     // =====================================================
 
     match /newsletter/{docId} {
       allow read: if true;
       allow list: if true;
+      allow create: if true;
+      allow update, delete: if isAdminOrSuperAdmin();
+    }
+
+    // =====================================================
+    // NEWSLETTER SUBSCRIBERS (production collection)
+    //   - Public create + list (for duplicate check & subscriber count on homepage)
+    //   - Admin read/update/delete
+    // =====================================================
+
+    match /newsletter_subscribers/{docId} {
+      allow read: if isAdminOrSuperAdmin();
+      allow list: if true; // Public list needed for duplicate check & count
       allow create: if true;
       allow update, delete: if isAdminOrSuperAdmin();
     }

@@ -20,6 +20,7 @@ import { Truck, Shield, RefreshCw, Headphones, Star, Heart, Package, Clock, Awar
 import { motion } from 'framer-motion';
 import ReviewsSection from '@/components/ui/ReviewsSection';
 import FAQSection from '@/components/ui/FAQSection';
+import NewsletterSection from '@/components/sections/NewsletterSection';
 import { getSectionConfig, SectionConfig } from '@/lib/firebase/sectionConfig';
 import CampaignRibbon from '@/components/sections/CampaignRibbon';
 import ActiveOffersSection from '@/components/sections/ActiveOffersSection';
@@ -269,17 +270,7 @@ export default function HomePage() {
       </section>
 
       {/* Newsletter */}
-      <section className="bg-[#d7ffa4] dark:bg-[#0f2f30] rounded-3xl p-6 md:p-10 text-center border border-[#1a1a1a] dark:border-[#c9a96e]">
-        <h2 className="text-2xl md:text-3xl font-bold text-[#1a1a1a] dark:text-[#e6d3a3] mb-2">Stay in the Loop</h2>
-        <p className="text-[#1a1a1a]/70 dark:text-[#e6d3a3]/70 mb-6 max-w-sm mx-auto">Get notified about new products and exclusive offers.</p>
-        <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-          <input type="email" placeholder="Your email address"
-            className="flex-1 px-4 py-3 rounded-xl border-2 border-[#1a1a1a] dark:border-[#c9a96e] bg-white dark:bg-[#051a1b] outline-none" />
-          <NeoButton text="Subscribe"
-            className="w-full sm:w-auto bg-[#1a1a1a] text-white border-[#1a1a1a] shadow-[3px_3px_0px_#444]
-            dark:bg-[#c9a96e] dark:text-[#051a1b] dark:border-[#c9a96e] dark:shadow-[3px_3px_0px_#fff3]" />
-        </div>
-      </section>
+      <NewsletterSection />
     </div>
   );
 }

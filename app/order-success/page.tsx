@@ -136,7 +136,7 @@ function TimelineStep({ step, index }: { step: typeof NEXT_STEPS[0]; index: numb
 }
 
 // ── Email Status Banner ───────────────────────────────────────
-function EmailStatusBanner({ email, sentAt, success }: { email: string; sentAt?: string; success?: boolean }) {
+function EmailStatusBanner({ email, sentAt, success, userDisabled }: { email: string; sentAt?: string; success?: boolean; userDisabled?: boolean }) {
   const [status, setStatus] = useState<'loading' | 'sent' | 'failed' | 'pending'>(success === true ? 'sent' : success === false ? 'failed' : 'loading');
 
   useEffect(() => {
@@ -460,13 +460,49 @@ function SuccessContent() {
           </motion.div>
         )}
 
-        {/* Email Status */}
+        {/* Email Status - show disabled banner when user email is off by admin config */}
         {orderSummary?.customer?.email && (
-          <EmailStatusBanner
-            email={orderSummary.customer.email}
-            sentAt={orderSummary.emailSentAt}
-            success={orderSummary.emailCustomerSuccess}
-          />
+          (orderSummary as any).emailUserDisabled ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-2xl p-4 shadow-sm"
+            >
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">
+                    Email Service Unavailable
+                  </p>
+                  <p className="text-xs text-amber-600/70 dark:text-amber-500/70 mt-1">
+                    Email notification service is currently unavailable due to system maintenance. 
+                    Your order has been placed successfully. Please save your Tracking ID below to track your order.
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-lg">
+                      ID: {orderId}
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(orderId || '');
+                        toast.success('Order ID copied!');
+                      }}
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <EmailStatusBanner
+              email={orderSummary.customer.email}
+              sentAt={orderSummary.emailSentAt}
+              success={orderSummary.emailCustomerSuccess}
+            />
+          )
         )}
 
         {/* Order Summary */}

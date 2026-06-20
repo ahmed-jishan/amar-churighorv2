@@ -777,7 +777,16 @@ export default function AdminCampaignsPage() {
                         <p className="text-[10px] mt-1" style={{ color: '#5a7070' }}>How many times each customer can use this coupon (1 = once). Leave blank for single use.</p>
                       </div>
                     </div>
-                    {/* Summary */}
+                      {/* Eligibility Criteria textarea */}
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs mb-1" style={{ color: '#9aada8' }}>Eligibility Criteria <span className="font-normal">(shown to customers)</span></label>
+                        <textarea value={form.eligibilityCriteria || ''} onChange={e => setForm(f => ({ ...f, eligibilityCriteria: e.target.value }))}
+                          rows={4} maxLength={500} placeholder="e.g. Complete at least 10 orders within the last 60 days. Your account must be in good standing. Only applicable to orders over ৳1,000."
+                          style={{ backgroundColor: '#0f2223', borderColor: 'rgba(201,169,110,0.18)', color: '#f0ebe0' }}
+                          className="w-full p-3 border rounded-xl outline-none focus:border-[#c9a96e] text-sm transition-colors resize-none" />
+                        <p className="text-[10px] mt-1" style={{ color: '#5a7070' }}>Describe the requirements customers must meet to qualify. Shown on the eligibility page.</p>
+                      </div>
+                      {/* Summary */}
                     {form.couponCode && form.discountValue && (
                       <div className="mt-3 p-3 rounded-xl text-xs" style={{ backgroundColor: 'rgba(245,158,11,0.08)', color: '#f59e0b' }}>
                         <Award className="w-3 h-3 inline mr-1.5" />

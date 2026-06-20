@@ -271,6 +271,7 @@ export default function Navbar() {
     { href: '/offers', label: 'Offers' },
     { href: '/my-orders', label: 'My Orders' },
     { href: '/about', label: 'About' },
+    { href: '/contact', label: 'Contact' },
   ];
 
   return (
@@ -305,6 +306,7 @@ export default function Navbar() {
             <NavLinkItem link={links[3]} pathname={pathname} onNavigate={closeMobile} />
             <NavLinkItem link={links[4]} pathname={pathname} onNavigate={closeMobile} />
             <NavLinkItem link={links[5]} pathname={pathname} onNavigate={closeMobile} />
+            <NavLinkItem link={links[6]} pathname={pathname} onNavigate={closeMobile} />
           </div>
 
           <div className="flex items-center gap-1 sm:gap-3">
@@ -453,6 +455,7 @@ export default function Navbar() {
               <MobileNavLink href="/offers" label="Offers" pathname={pathname} onClick={closeMobile} />
               <MobileNavLink href="/my-orders" label="My Orders" pathname={pathname} onClick={closeMobile} />
               <MobileNavLink href="/about" label="About" pathname={pathname} onClick={closeMobile} />
+              <MobileNavLink href="/contact" label="Contact" pathname={pathname} onClick={closeMobile} />
 
               <div className="pt-2 mt-2 border-t border-[#1f3334]/50">
                 <Link

@@ -506,16 +506,28 @@ export default function AnnouncementBar() {
                       )}
                     </div>
 
-                    {/* Mobile dismiss */}
-                    <div className="flex md:hidden items-center gap-2 shrink-0">
+                    {/* Mobile: timer + CTA + dismiss in a compact row */}
+                    <div className="flex md:hidden items-center gap-1.5 shrink-0 max-w-[180px] overflow-hidden">
+                      {config.mode === 'campaign' && config.showCampaignTimer && currentMessage?.timer && (
+                        <CountdownTimer endDate={currentMessage.timer} />
+                      )}
+                      {currentMessage?.linkText && (
+                        <a
+                          href={currentMessage.linkUrl || '#'}
+                          className="inline-flex items-center gap-0.5 text-[10px] font-medium underline underline-offset-2 whitespace-nowrap shrink-0"
+                          style={{ color: colors.dot, textUnderlineOffset: 2 }}
+                        >
+                          {currentMessage.linkText}
+                        </a>
+                      )}
                       {config.dismissible && (
                         <button
                           onClick={handleDismiss}
-                          className="p-1 rounded-full hover:bg-black/20 dark:hover:bg-white/10 transition-colors"
+                          className="p-1 rounded-full hover:bg-black/20 dark:hover:bg-white/10 transition-colors shrink-0"
                           aria-label="Dismiss announcement"
                           style={{ opacity: 0.6 }}
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <X className="w-3 h-3" />
                         </button>
                       )}
                     </div>

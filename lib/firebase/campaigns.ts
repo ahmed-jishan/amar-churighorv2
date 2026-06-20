@@ -76,6 +76,7 @@ export async function createCampaign(data: CampaignFormData, adminUid: string): 
     expiresAfterDays: data.expiresAfterDays ? Number(data.expiresAfterDays) : undefined,
     rewardLabel: data.rewardLabel || undefined,
     perUserUsageLimit: data.perUserUsageLimit ? Number(data.perUserUsageLimit) : undefined,
+    eligibilityCriteria: data.eligibilityCriteria || undefined,
     firstOrderOnly: data.firstOrderOnly || false,
     createdBy: adminUid,
     createdAt: new Date().toISOString(),
@@ -109,6 +110,7 @@ export async function updateCampaign(id: string, data: Partial<CampaignFormData>
   if (data.expiresAfterDays !== undefined) payload.expiresAfterDays = data.expiresAfterDays ? Number(data.expiresAfterDays) : null;
   if (data.rewardLabel !== undefined) payload.rewardLabel = data.rewardLabel || null;
   if (data.perUserUsageLimit !== undefined) payload.perUserUsageLimit = data.perUserUsageLimit ? Number(data.perUserUsageLimit) : null;
+  if (data.eligibilityCriteria !== undefined) payload.eligibilityCriteria = data.eligibilityCriteria || null;
 
   await updateDoc(doc(db, COLLECTION, id), cleanPayload(payload));
 }
@@ -200,6 +202,7 @@ export function toCampaignCardData(campaign: OfferCampaign): CampaignCardData {
     couponCode: campaign.couponCode,
     expiresAfterDays: campaign.expiresAfterDays,
     rewardLabel: campaign.rewardLabel,
+    eligibilityCriteria: campaign.eligibilityCriteria,
     targetCategories: campaign.targetCategories,
     minOrderAmount: campaign.minOrderAmount,
   };

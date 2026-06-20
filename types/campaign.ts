@@ -56,6 +56,8 @@ export interface OfferCampaign {
   rewardLabel?: string;
   /** For loyalty: max times each customer can apply this coupon (null = unlimited once) */
   perUserUsageLimit?: number;
+  /** User-facing eligibility criteria text (shown on eligibility page) */
+  eligibilityCriteria?: string;
   /** For first_order: only applicable to first-time customers */
   firstOrderOnly: boolean;
   // ── Metadata ──
@@ -96,6 +98,8 @@ export interface CampaignFormData {
   rewardLabel?: string;
   /** For loyalty: max times each customer can apply this coupon */
   perUserUsageLimit?: number;
+  /** User-facing eligibility criteria text */
+  eligibilityCriteria?: string;
   firstOrderOnly: boolean;
 }
 
@@ -125,6 +129,7 @@ export interface CampaignCardData {
   expiresAfterDays?: number;
   rewardLabel?: string;
   perUserUsageLimit?: number;
+  eligibilityCriteria?: string;
   targetCategories: string[];
   minOrderAmount: number | null;
 }

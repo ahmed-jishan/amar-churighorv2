@@ -7,7 +7,7 @@ import { logoutAdmin } from '@/lib/firebase/auth';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Tag, Home, ChevronRight,
   Layers, ImageIcon, ShieldCheck, FileText, MessageSquare, HelpCircle, Star, ChevronDown,
-  Menu, X, BarChart3, Activity, Megaphone, Link as LinkIcon
+  Menu, X, BarChart3, Activity, Megaphone, Link as LinkIcon, Mail,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -71,6 +71,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           { href: '/admin/categories', icon: Layers, label: 'Categories', show: true },
           { href: '/admin/orders', icon: ShoppingCart, label: 'Orders', show: true },
           { href: '/admin/customers', icon: Users, label: 'Customers', show: true },
+          { href: '/admin/subscribers', icon: Mail, label: 'Subscribers', show: true },
           { href: '/admin/analytics', icon: BarChart3, label: 'Analytics', show: true },
         ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
@@ -237,23 +238,24 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             { href: '/admin/products', icon: Package, label: 'Products', show: true },
             { href: '/admin/categories', icon: Layers, label: 'Categories', show: true },
             { href: '/admin/orders', icon: ShoppingCart, label: 'Orders', show: true },
-            { href: '/admin/customers', icon: Users, label: 'Customers', show: true },
-            { href: '/admin/analytics', icon: BarChart3, label: 'Analytics', show: true },
-          ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
-            const active = pathname === href || pathname.startsWith(href + '/');
-            return (
-              <Link key={href} href={href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
-                  active ? 'bg-[#d7ffa4] text-[#1a1a1a] font-semibold' : 'text-gray-400 hover:text-white hover:bg-[#0b2a2b]'
-                }`}>
-                <Icon className="w-4 h-4 shrink-0" />
-                <span className="truncate">{label}</span>
-                {active && <ChevronRight className="w-3 h-3 ml-auto shrink-0" />}
-              </Link>
-            );
-          })}
+          { href: '/admin/customers', icon: Users, label: 'Customers', show: true },
+          { href: '/admin/subscribers', icon: Mail, label: 'Subscribers', show: true },
+          { href: '/admin/analytics', icon: BarChart3, label: 'Analytics', show: true },
+        ].filter(item => item.show).map(({ href, icon: Icon, label }) => {
+          const active = pathname === href || pathname.startsWith(href + '/');
+          return (
+            <Link key={href} href={href}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                active ? 'bg-[#d7ffa4] text-[#1a1a1a] font-semibold' : 'text-gray-400 hover:text-white hover:bg-[#0b2a2b]'
+              }`}>
+              <Icon className="w-4 h-4 shrink-0" />
+              <span className="truncate">{label}</span>
+              {active && <ChevronRight className="w-3 h-3 ml-auto shrink-0" />}
+            </Link>
+          );
+        })}
 
-          {/* ── Content Management Section ── */}
+        {/* ── Content Management Section ── */}
           <div className="pt-4 pb-1">
             <div className="flex items-center gap-2 px-3 py-1">
               <MessageSquare className="w-4 h-4 text-[#d7ffa4]" />

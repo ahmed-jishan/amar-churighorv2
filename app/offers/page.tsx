@@ -52,14 +52,23 @@ const CTA_LABELS: Record<string, string> = {
   custom: 'Shop Now',
 };
 
-const CTA_LINKS: Record<string, string> = {
-  flash_sale: '/products?sale=flash',
-  first_order: '/products',
-  combo: '/products',
-  loyalty: '/my-orders',
-  festival: '/products',
-  custom: '/products',
-};
+/**
+ * Generate CTA link for a campaign. Loyalty campaigns point to the eligibility page.
+ * Other types use static paths.
+ */
+function getCtaLink(campaign: CampaignCardData): string {
+  if (campaign.type === 'loyalty') {
+    return `/campaigns/${campaign.id}/eligibility`;
+  }
+  const STATIC_LINKS: Record<string, string> = {
+    flash_sale: '/products?sale=flash',
+    first_order: '/products',
+    combo: '/products',
+    festival: '/products',
+    custom: '/products',
+  };
+  return STATIC_LINKS[campaign.type] || '/products';
+}
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -231,8 +240,10 @@ function FlashSaleBanner({ campaign }: { campaign: CampaignCardData }) {
           <div className="shrink-0 text-center md:text-right">
             {/* Show discount or image */}
             {campaign.image ? (
-              <img src={campaign.image} alt={campaign.title}
-                className="w-32 h-32 md:w-40 md:h-40 object-cover rounded-xl" />
+              <div className="w-32 h-32 md:w-40 md:h-40 rounded-xl overflow-hidden" style={{ backgroundColor: 'rgba(239,68,68,0.15)' }}>
+                <img src={campaign.image} alt={campaign.title}
+                  className="w-full h-full object-contain" />
+              </div>
             ) : (
               <div className="text-4xl md:text-6xl font-bold text-red-600 dark:text-[#ef4444]">
                 {campaign.discountLabel}
@@ -282,10 +293,19 @@ function CampaignCardItem({ campaign, index }: { campaign: CampaignCardData; ind
       {/* ── With image layout ── */}
       {campaign.image ? (
         <>
-          <div className="relative -mx-[22px] -mt-[22px] mb-4 overflow-hidden rounded-t-[18px]" style={{ height: 160 }}>
+          <div className="relative -mx-[22px] -mt-[22px] mb-4 overflow-hidden rounded-t-[18px] aspect-video"
+            style={{ backgroundColor: typeColor + '15' }}>
             <img src={campaign.image} alt={campaign.title}
-              className="w-full h-full object-cover" />
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.6) 0%, transparent 60%)' }} />
+              className="w-full h-full object-contain" />
+            {/* Gradient overlay for text readability */}
+            <div className="absolute inset-0" style={{
+              background: `linear-gradient(to top, ${typeColor}dd 0%, ${typeColor}99 30%, transparent 60%, ${typeColor}22 100%)`,
+              mixBlendMode: 'multiply',
+            }} />
+            {/* Dark bottom gradient overlay for text */}
+            <div className="absolute inset-0" style={{
+              background: 'linear-gradient(0deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 40%, transparent 70%)',
+            }} />
             {/* Discount badge */}
             <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-bold text-white"
               style={{ backgroundColor: typeColor }}>
@@ -376,8 +396,7 @@ function CampaignCardItem({ campaign, index }: { campaign: CampaignCardData; ind
           </span>
         )}
         {!campaign.endDate && <span />}
-        <a href={CTA_LINKS[campaign.type] || '/products'}
-          onClick={campaign.type === 'loyalty' ? (e) => { e.preventDefault(); window.location.href = '/my-orders'; } : undefined}
+        <a href={getCtaLink(campaign)}
           className={`text-xs font-semibold px-4 py-2 rounded-lg transition-all ${isExhausted ? 'opacity-40 pointer-events-none' : 'hover:opacity-80'} text-white`}
           style={{
             backgroundColor: isExhausted ? '#9aada8' : typeColor,

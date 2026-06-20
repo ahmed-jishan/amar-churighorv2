@@ -199,8 +199,16 @@ export default function CheckoutPage() {
               if (stored) {
                 const parsed = JSON.parse(stored);
                 parsed.emailSentAt = result.emailSentAt || new Date().toISOString();
-                parsed.emailCustomerSuccess = result.details.customer?.success ?? false;
-                parsed.emailAdminSuccess = result.details.admin?.success ?? false;
+                // Use success flag for customer email; if disabled, mark as not sent
+                parsed.emailCustomerSuccess = result.details?.customer?.disabled
+                  ? false
+                  : (result.details?.customer?.success ?? false);
+                parsed.emailAdminSuccess = result.details?.admin?.disabled
+                  ? false
+                  : (result.details?.admin?.success ?? false);
+                // Store whether user email was disabled by admin config
+                parsed.emailUserDisabled = result.details?.customer?.disabled ?? false;
+                parsed.emailAdminDisabled = result.details?.admin?.disabled ?? false;
                 sessionStorage.setItem('lastOrder', JSON.stringify(parsed));
               }
             } catch {}

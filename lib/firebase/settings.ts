@@ -14,8 +14,17 @@ export interface AnalyticsConfig {
   trackingEnabled: boolean;
 }
 
+/** Email notification toggle configuration */
+export interface EmailConfig {
+  /** Send order confirmation email to the customer */
+  userGetEmail: boolean;
+  /** Send order notification email to the admin */
+  adminGetEmail: boolean;
+}
+
 const CONFIG_ID = 'store_config';
 const ANALYTICS_CONFIG_ID = 'analytics_config';
+const EMAIL_CONFIG_ID = 'email_config';
 
 const DEFAULT_CONFIG: StoreConfig = {
   contactEmails: ['hello@amarchurchighor.com'],
@@ -26,6 +35,11 @@ const DEFAULT_CONFIG: StoreConfig = {
 
 const DEFAULT_ANALYTICS_CONFIG: AnalyticsConfig = {
   trackingEnabled: true,
+};
+
+const DEFAULT_EMAIL_CONFIG: EmailConfig = {
+  userGetEmail: true,
+  adminGetEmail: true,
 };
 
 export async function getStoreConfig(): Promise<StoreConfig> {
@@ -76,6 +90,32 @@ export async function getAnalyticsConfig(): Promise<AnalyticsConfig> {
 export async function saveAnalyticsConfig(data: AnalyticsConfig): Promise<void> {
   await setDoc(doc(db, 'settings', ANALYTICS_CONFIG_ID), {
     trackingEnabled: data.trackingEnabled !== false,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+/** Get the email notification toggle config (default: both enabled) */
+export async function getEmailConfig(): Promise<EmailConfig> {
+  try {
+    const snap = await getDoc(doc(db, 'settings', EMAIL_CONFIG_ID));
+    if (snap.exists()) {
+      const data = snap.data();
+      return {
+        userGetEmail: data.userGetEmail !== false,
+        adminGetEmail: data.adminGetEmail !== false,
+      };
+    }
+    return DEFAULT_EMAIL_CONFIG;
+  } catch {
+    return DEFAULT_EMAIL_CONFIG;
+  }
+}
+
+/** Save the email notification toggle config */
+export async function saveEmailConfig(data: EmailConfig): Promise<void> {
+  await setDoc(doc(db, 'settings', EMAIL_CONFIG_ID), {
+    userGetEmail: data.userGetEmail !== false,
+    adminGetEmail: data.adminGetEmail !== false,
     updatedAt: new Date().toISOString(),
   });
 }
