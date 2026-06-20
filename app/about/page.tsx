@@ -1,3 +1,14 @@
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'About Lumin',
+  description: 'Discover the story behind Lumin — Bangladesh\'s premier online jewelry destination. Learn about our commitment to quality, craftsmanship, and customer satisfaction.',
+  openGraph: {
+    title: 'About Lumin | Premium Jewelry Bangladesh',
+    description: 'Discover the story behind Lumin — Bangladesh\'s premier online jewelry destination.',
+  },
+};
+
 export default function AboutPage() {
   return (
     <div className="max-w-3xl mx-auto prose dark:prose-invert">

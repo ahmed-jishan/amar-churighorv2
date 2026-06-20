@@ -1,18 +1,23 @@
 import { MetadataRoute } from 'next';
 import { getProducts } from '@/lib/firebase/products';
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const BASE = 'https://amarchurchighor.com';
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://lumin.boutique';
 
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
-    { url: BASE, changeFrequency: 'daily' as const, priority: 1 },
-    { url: `${BASE}/products`, changeFrequency: 'daily' as const, priority: 0.9 },
-    { url: `${BASE}/categories`, changeFrequency: 'weekly' as const, priority: 0.8 },
-    { url: `${BASE}/offers`, changeFrequency: 'daily' as const, priority: 0.8 },
-    { url: `${BASE}/about`, changeFrequency: 'monthly' as const, priority: 0.5 },
-    { url: `${BASE}/contact`, changeFrequency: 'monthly' as const, priority: 0.5 },
-    { url: `${BASE}/track-order`, changeFrequency: 'monthly' as const, priority: 0.6 },
-    { url: `${BASE}/collections/featured`, changeFrequency: 'daily' as const, priority: 0.8 },
+    { url: BASE, changeFrequency: 'daily' as const, priority: 1, lastModified: new Date() },
+    { url: `${BASE}/products`, changeFrequency: 'daily' as const, priority: 0.9, lastModified: new Date() },
+    { url: `${BASE}/categories`, changeFrequency: 'weekly' as const, priority: 0.8, lastModified: new Date() },
+    { url: `${BASE}/offers`, changeFrequency: 'daily' as const, priority: 0.9, lastModified: new Date() },
+    { url: `${BASE}/about`, changeFrequency: 'monthly' as const, priority: 0.5, lastModified: new Date() },
+    { url: `${BASE}/contact`, changeFrequency: 'monthly' as const, priority: 0.5, lastModified: new Date() },
+    { url: `${BASE}/track-order`, changeFrequency: 'monthly' as const, priority: 0.6, lastModified: new Date() },
+    { url: `${BASE}/collections/featured`, changeFrequency: 'daily' as const, priority: 0.8, lastModified: new Date() },
+    { url: `${BASE}/collections/favorites`, changeFrequency: 'weekly' as const, priority: 0.6, lastModified: new Date() },
+    { url: `${BASE}/search`, changeFrequency: 'weekly' as const, priority: 0.5, lastModified: new Date() },
+    { url: `${BASE}/terms`, changeFrequency: 'monthly' as const, priority: 0.3, lastModified: new Date() },
+    { url: `${BASE}/privacy`, changeFrequency: 'monthly' as const, priority: 0.3, lastModified: new Date() },
+    { url: `${BASE}/refund`, changeFrequency: 'monthly' as const, priority: 0.3, lastModified: new Date() },
   ];
 
   let productRoutes: MetadataRoute.Sitemap = [];
@@ -22,7 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${BASE}/products/${p.slug}`,
       changeFrequency: 'weekly' as const,
       priority: 0.7,
-      lastModified: new Date(p.updatedAt),
+      lastModified: new Date(p.updatedAt || p.createdAt),
     }));
   } catch {}
 
