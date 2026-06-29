@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { checkoutSchema, CheckoutFormData } from '@/lib/validators/checkout';
-import { createOrder } from '@/lib/firebase/orders';
+import { getAnonymousId } from '@/lib/anonymousUser';
 import { getStoreConfig, StoreConfig } from '@/lib/firebase/settings';
 import { formatPrice, DISTRICTS } from '@/lib/utils';
 import Image from 'next/image';
@@ -105,14 +105,25 @@ export default function CheckoutPage() {
         selectedSize: item.selectedSize,
       }));
 
-      const { orderId, trackingToken } = await createOrder({
-        customer: data,
-        items: orderItems,
-        subtotal: totalPrice,
-        deliveryCharge,
-        total: grandTotal,
-        status: 'pending',
+      // Call server-side API (uses Admin SDK — bypasses Firestore security rules)
+      const createRes = await fetch('/api/orders/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: data,
+          items: orderItems,
+          subtotal: totalPrice,
+          deliveryCharge,
+          total: grandTotal,
+          status: 'pending',
+          anonymousId: getAnonymousId(),
+        }),
       });
+      const createData = await createRes.json();
+      if (!createData.success) {
+        throw new Error(createData.error || 'Failed to create order');
+      }
+      const { orderId, trackingToken } = createData;
 
       // ── Mark the applied reward as used (fire-and-forget — never fail order) ──
       if (appliedReward) {
